@@ -26,8 +26,9 @@ type (
 	}
 
 	SetHolidayCommand struct {
-		ID       int
+		UserID   int
 		TillDate time.Time
+		SetDate  time.Time
 	}
 
 	CancelHolidayCommand struct {

@@ -11,12 +11,12 @@ import (
 
 type IUserRepository interface {
 	BlockUser(ctx context.Context, who, whom int) error
-	SetHoliday(ctx context.Context, id int, tillDate time.Time) (*entity.User, error)
+	SetHoliday(ctx context.Context, id int, tillDate, setDate time.Time) error
 	CancelHoliday(ctx context.Context, id int) error
 	GetUserByUsername(ctx context.Context, username string) (*entity.User, error)
 	GetUserByID(ctx context.Context, id int) (*entity.User, error)
 	InsertUser(ctx context.Context, user *entity.User) error
-	UpdateUser(ctx context.Context, id int, fullName, city, position, interests, photoURL string) (*entity.User, error)
+	UpdateUser(ctx context.Context, id int, fullName, city, position, interests, photoURL string) error
 }
 
 func NewUserUseCase(ur IUserRepository) *UserUseCase {
@@ -50,27 +50,27 @@ func (uc *UserUseCase) BlockUser(ctx context.Context, cmd commands.BlockUserComm
 	return nil
 }
 
-func (uc *UserUseCase) SetHoliday(ctx context.Context, cmd commands.SetHolidayCommand) (*entity.User, error) {
+func (uc *UserUseCase) SetHoliday(ctx context.Context, cmd commands.SetHolidayCommand) error {
 	const op = "UseCase:SetHoliday"
 
-	fail := func(err error) (*entity.User, error) {
-		return nil, fmt.Errorf("%s: %w", op, err)
+	fail := func(err error) error {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	log := slog.With(
 		slog.String("op", op),
-		slog.Int("userID", cmd.ID),
+		slog.Int("userID", cmd.UserID),
 		slog.String("tillDate", cmd.TillDate.String()),
 	)
 	log.Debug(op)
 
-	user, err := uc.userRepo.SetHoliday(ctx, cmd.ID, cmd.TillDate)
+	err := uc.userRepo.SetHoliday(ctx, cmd.UserID, cmd.TillDate, cmd.SetDate)
 	if err != nil {
 		log.Debug("couldn't set holiday: ", err.Error())
 		return fail(err)
 	}
 
-	return user, nil
+	return nil
 }
 
 func (uc *UserUseCase) CancelHoliday(ctx context.Context, cmd commands.CancelHolidayCommand) error {
@@ -157,11 +157,19 @@ func (uc *UserUseCase) UpdateUser(ctx context.Context, cmd commands.UpdateUserCo
 		return fail(err)
 	}
 
-	user, err := uc.userRepo.UpdateUser(ctx, cmd.ID, cmd.FullName, cmd.City, cmd.Position, cmd.Interests, cmd.PhotoURL)
+	err = uc.userRepo.UpdateUser(ctx, cmd.ID, cmd.FullName, cmd.City, cmd.Position, cmd.Interests, cmd.PhotoURL)
 	if err != nil {
 		log.Debug("couldn't update user: ", err.Error())
 		return fail(err)
 	}
+
+	user, err := uc.userRepo.GetUserByID(ctx, cmd.ID)
+	if err != nil {
+		log.Debug("couldn't get user: ", err.Error())
+		return fail(err)
+	}
+
+	log.Debug(fmt.Sprintf("user: %+v", user))
 
 	return user, nil
 }

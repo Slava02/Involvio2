@@ -42,9 +42,7 @@ func (r *UserRepository) InsertUser(ctx context.Context, user *entity.User) erro
 
 	query, args, err := r.db.Builder.
 		Insert("\"user\"").
-		// TODO: birthday пока строка
-		// TODO: поменять sex в БД yf gender
-		Columns("id, full_name, username, birthday, photo_url, city, socials, position, sex, interests, goal").
+		Columns("id, full_name, username, birthday, photo_url, city, socials, position, gender, interests, goal").
 		Values(user.ID, user.FullName, user.UserName, user.Birthday, user.PhotoURL, user.City, user.Socials, user.Position, user.Gender, user.Interests, user.Goal).
 		ToSql()
 	if err != nil {
@@ -79,7 +77,7 @@ func (r *UserRepository) BlockUser(ctx context.Context, who, whom int) error {
 	log := slog.With(
 		slog.String("op", op),
 		slog.Int("who", who),
-		slog.Int("who", whom),
+		slog.Int("whom", whom),
 	)
 	log.Debug(op)
 
@@ -89,8 +87,7 @@ func (r *UserRepository) BlockUser(ctx context.Context, who, whom int) error {
 
 	query, args, err := r.db.Builder.
 		Insert("blocks").
-		// TODO: change to who and whom
-		Columns("id, user_id").
+		Columns("who, whom").
 		Values(who, whom).
 		ToSql()
 	if err != nil {
@@ -119,7 +116,7 @@ func (r *UserRepository) BlockUser(ctx context.Context, who, whom int) error {
 	return nil
 }
 
-func (r *UserRepository) SetHoliday(ctx context.Context, id int, tillDate time.Time) (*entity.User, error) {
+func (r *UserRepository) SetHoliday(ctx context.Context, id int, tillDate, setDate time.Time) error {
 	const op = "Repo:SetHoliday"
 
 	log := slog.With(
@@ -129,14 +126,14 @@ func (r *UserRepository) SetHoliday(ctx context.Context, id int, tillDate time.T
 	)
 	log.Debug(op)
 
-	fail := func(err error) (*entity.User, error) {
-		return &entity.User{}, fmt.Errorf("%r: %w", op, err)
+	fail := func(err error) error {
+		return fmt.Errorf("%r: %w", op, err)
 	}
 
 	query, args, err := r.db.Builder.
-		Insert("holiday_status").
-		Columns("id, status, till_date").
-		Values(id, true, tillDate).
+		Insert("holidays_status").
+		Columns("user_id, status, till_date, set_date").
+		Values(id, true, tillDate, setDate).
 		ToSql()
 	if err != nil {
 		log.Debug("couldn't create SQL statement: ", err.Error())
@@ -149,22 +146,21 @@ func (r *UserRepository) SetHoliday(ctx context.Context, id int, tillDate time.T
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.UniqueViolation:
-				log.Debug("couldn't insert data in holiday_status: ", err.Error())
+				log.Debug("couldn't insert data in holidays_status: ", err.Error())
 				return fail(ErrAlreadyExists)
 			default:
-				log.Debug("couldn't insert data in holiday_status: ", err.Error())
+				log.Debug("couldn't insert data in holidays_status: ", err.Error())
 				return fail(err)
 			}
 		} else {
-			log.Debug("couldn't insert data in holiday_status: ", err.Error())
+			log.Debug("couldn't insert data in holidays_status: ", err.Error())
 			return fail(err)
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
-// TODO: надо добавить id самого hpoliday, поменять UserID и добавить дату когда его поставили
 func (r *UserRepository) CancelHoliday(ctx context.Context, id int) error {
 	const op = "Repo:CancelHoliday"
 
@@ -178,23 +174,21 @@ func (r *UserRepository) CancelHoliday(ctx context.Context, id int) error {
 		return fmt.Errorf("%r: %w", op, err)
 	}
 
-	//  Tут легче руками написать - UPDATE holiday_status SET status WHERE holiday_id = (SELECT holiday_id FROM holidays_status WHERE user_id = ? and set_date = (SELECT MAX(set_date) FROM holiday_status WHERE user_id = ?) FOR UPDATE)
+	query := `
+			UPDATE holidays_status 
+			SET status = false
+			WHERE id = (
+				SELECT id 
+				FROM holidays_status 
+				WHERE user_id = $1
+				AND set_date = (
+						SELECT MAX(set_date) 
+						FROM holidays_status 
+						WHERE user_id = $2
+					)
+			)`
 
-	mainQuery, args, err := r.db.Builder.
-		Update("\"holiday_status\"").
-		Set("status", false).
-		Where("user_id=?", id).
-		ToSql()
-	if err != nil {
-		log.Debug("couldn't create SQL statement: ", err.Error())
-		return fail(err)
-	}
-
-	subQuery := r.db.Builder.
-		Select("holiday_id, MAX(date)").
-		Where("")
-
-	_, err = r.db.Pool.Exec(ctx, query, args...)
+	_, err := r.db.Pool.Exec(ctx, query, id, id)
 	if err != nil {
 		log.Debug("couldn't update group: ", err.Error())
 		return fail(err)
@@ -217,7 +211,7 @@ func (r *UserRepository) GetUserByUsername(ctx context.Context, username string)
 	}
 
 	query, args, err := r.db.Builder.
-		Select("id, username, full_name, birthday, gender, city, socials, position, sex, photo_url, interests, goal").
+		Select("id, username, full_name, birthday, city, socials, position, gender, photo_url, interests, goal").
 		From("\"user\"").
 		Where("username = ?", username).
 		ToSql()
@@ -228,7 +222,7 @@ func (r *UserRepository) GetUserByUsername(ctx context.Context, username string)
 
 	user := new(entity.User)
 
-	err = r.db.Pool.QueryRow(ctx, query, args...).Scan(&user.ID, &user.UserName, &user.FullName, &user.Birthday, &user.Gender, &user.City, &user.Socials, &user.Position, &user.Gender, &user.PhotoURL, &user.Interests, &user.Goal)
+	err = r.db.Pool.QueryRow(ctx, query, args...).Scan(&user.ID, &user.UserName, &user.FullName, &user.Birthday, &user.City, &user.Socials, &user.Position, &user.Gender, &user.PhotoURL, &user.Interests, &user.Goal)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Debug("user not found: ", err.Error())
@@ -239,7 +233,43 @@ func (r *UserRepository) GetUserByUsername(ctx context.Context, username string)
 		}
 	}
 
-	return nil, nil
+	query = `
+		SELECT id, name
+		FROM "group"
+		WHERE id in (
+		   SELECT group_id
+			FROM user_group 
+			WHERE user_group.user_id = $1 
+		)
+		`
+
+	rows, err := r.db.Pool.Query(ctx, query, user.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Debug("user not found: ", err.Error())
+			return fail(ErrNotFound)
+		} else {
+			log.Debug("error: ", err.Error())
+			return fail(err)
+		}
+	}
+
+	var groups []entity.Group
+
+	for rows.Next() {
+		group := new(entity.Group)
+
+		err = rows.Scan(&group.ID, &group.Name)
+		if err != nil {
+			return fail(err)
+		}
+
+		groups = append(groups, *group)
+	}
+
+	user.Groups = groups
+
+	return user, nil
 }
 
 func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*entity.User, error) {
@@ -256,7 +286,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*entity.User,
 	}
 
 	query, args, err := r.db.Builder.
-		Select("id, username, full_name, birthday, gender, city, socials, position, sex, photo_url, interests, goal").
+		Select("id, username, full_name, birthday, city, socials, position, gender, photo_url, interests, goal").
 		From("\"user\"").
 		Where("id = ?", id).
 		ToSql()
@@ -267,7 +297,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*entity.User,
 
 	user := new(entity.User)
 
-	err = r.db.Pool.QueryRow(ctx, query, args...).Scan(&user.ID, &user.UserName, &user.FullName, &user.Birthday, &user.Gender, &user.City, &user.Socials, &user.Position, &user.Gender, &user.PhotoURL, &user.Interests, &user.Goal)
+	err = r.db.Pool.QueryRow(ctx, query, args...).Scan(&user.ID, &user.UserName, &user.FullName, &user.Birthday, &user.City, &user.Socials, &user.Position, &user.Gender, &user.PhotoURL, &user.Interests, &user.Goal)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Debug("user not found: ", err.Error())
@@ -278,10 +308,10 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*entity.User,
 		}
 	}
 
-	return nil, nil
+	return user, nil
 }
 
-func (r *UserRepository) UpdateUser(ctx context.Context, id int, fullName, city, position, interests, photoURL string) (*entity.User, error) {
+func (r *UserRepository) UpdateUser(ctx context.Context, id int, fullName, city, position, interests, photoURL string) error {
 	const op = "Repo:UpdateUser"
 
 	log := slog.With(
@@ -290,8 +320,8 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id int, fullName, city,
 	)
 	log.Debug(op)
 
-	fail := func(err error) (*entity.User, error) {
-		return &entity.User{}, fmt.Errorf("%r: %w", op, err)
+	fail := func(err error) error {
+		return fmt.Errorf("%r: %w", op, err)
 	}
 
 	query, args, err := r.db.Builder.
@@ -314,12 +344,5 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id int, fullName, city,
 		return fail(err)
 	}
 
-	//  TODO: тупость - это надо в юзкейз, а тут ничего не возвращаем
-	user, err := r.GetUserByID(ctx, id)
-	if err != nil {
-		log.Debug("couldn't get user: ", err.Error())
-		return fail(err)
-	}
-
-	return user, nil
+	return nil
 }

@@ -15,10 +15,10 @@ import (
 
 type IEventUseCase interface {
 	CreateEvent(ctx context.Context, cmd commands.CreateEventCommand) (*entity.Event, error)
-	GetUserEvents(ctx context.Context, cmd commands.EventByUserIdCommand) ([]entity.Event, error)
+	GetUserEvents(ctx context.Context, cmd commands.EventByUserIdCommand) ([]*entity.Event, error)
 	JoinEvent(ctx context.Context, cmd commands.JoinEventCommand) error
 	DeleteEvent(ctx context.Context, cmd commands.EventByIdCommand) error
-	ReviewEvent(ctx context.Context, cmd commands.ReviewEventCommand) error
+	ReviewEvent(ctx context.Context, cmd commands.ReviewEventCommand) (*entity.Review, error)
 }
 
 var _ IEventUseCase = (*usecase.EventUseCase)(nil)
@@ -170,7 +170,7 @@ func (eh *EventHandler) JoinEvent(ctx context.Context, req *JoinEventRequest) (*
 	return &struct{}{}, nil
 }
 
-func (eh *EventHandler) ReviewEvent(ctx context.Context, req *ReviewEventRequest) (*struct{}, error) {
+func (eh *EventHandler) ReviewEvent(ctx context.Context, req *ReviewEventRequest) (*entity.Review, error) {
 	const op = "Handler:ReviewEvent"
 
 	tracer := otel.Tracer(tracerName)
@@ -189,7 +189,7 @@ func (eh *EventHandler) ReviewEvent(ctx context.Context, req *ReviewEventRequest
 		Grade:   req.Body.Grade,
 	}
 
-	err := eh.eventUC.ReviewEvent(ctx, cmd)
+	review, err := eh.eventUC.ReviewEvent(ctx, cmd)
 	if err != nil {
 		switch {
 		default:
@@ -198,5 +198,5 @@ func (eh *EventHandler) ReviewEvent(ctx context.Context, req *ReviewEventRequest
 		}
 	}
 
-	return &struct{}{}, nil
+	return review, nil
 }

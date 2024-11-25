@@ -2,7 +2,9 @@ package group
 
 import (
 	"context"
+	"errors"
 	"github.com/Slava02/Involvio/api/internal/entity"
+	"github.com/Slava02/Involvio/api/internal/repository"
 	"github.com/Slava02/Involvio/api/internal/usecase"
 	"github.com/Slava02/Involvio/api/internal/usecase/commands"
 	"github.com/danielgtaylor/huma/v2"
@@ -81,6 +83,8 @@ func (sh *GroupHandler) GetGroup(ctx context.Context, req *GroupByNameRequest) (
 	group, err := sh.groupUC.GetGroup(ctx, cmd)
 	if err != nil {
 		switch {
+		case errors.Is(err, repository.ErrNotFound):
+			return nil, huma.Error404NotFound("group not found")
 		default:
 			log.Error("couldn't get group: ", err.Error())
 			return nil, huma.Error500InternalServerError(err.Error())

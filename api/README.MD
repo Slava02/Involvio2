@@ -76,7 +76,7 @@ export DB_PASSWORD=admin ENV_NAME=dev && make dc
 ```
 
 ## Документация
-[OpenAPI3.1](http://127.0.0.1:9000/docs)
+[OpenAPI3.1](http://127.0.0.1:8000/docs)
 
 ## Мониторинг-ресурсов
 - потребление cpu
@@ -84,10 +84,10 @@ export DB_PASSWORD=admin ENV_NAME=dev && make dc
 - среднее время ответа на запрос
 - количество открытых соединений
 
-[МОНИТОР](http://127.0.0.1:9000/monitor)
+[МОНИТОР](http://127.0.0.1:8000/monitor)
 
 ## Профайлер
-[PROFILER](http://127.0.0.1:9000/debug/pprof/)
+[PROFILER](http://127.0.0.1:8000/debug/pprof/)
 
 ## Тестирование
 

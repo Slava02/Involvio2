@@ -14,10 +14,10 @@ import (
 type IEventRepository interface {
 	InsertEvent(ctx context.Context, event *entity.Event) error
 	GetEvent(ctx context.Context, id int) (*entity.Event, error)
-	GetUserEvents(ctx context.Context, id int) ([]entity.Event, error)
+	GetUserEvents(ctx context.Context, id int) ([]*entity.Event, error)
 	AddUser(ctx context.Context, eventId, userId int) error
 	DeleteEvent(ctx context.Context, id int) error
-	AddReview(ctx context.Context, eventId, who, whom, grade int) error
+	AddReview(ctx context.Context, eventId, who, whom, grade int) (*entity.Review, error)
 }
 
 func NewEventUseCase(ur IEventRepository) *EventUseCase {
@@ -28,11 +28,11 @@ type EventUseCase struct {
 	eventRepo IEventRepository
 }
 
-func (ec *EventUseCase) ReviewEvent(ctx context.Context, cmd commands.ReviewEventCommand) error {
+func (ec *EventUseCase) ReviewEvent(ctx context.Context, cmd commands.ReviewEventCommand) (*entity.Review, error) {
 	const op = "UseCase:ReviewEvent"
 
-	fail := func(err error) error {
-		return fmt.Errorf("%s: %w", op, err)
+	fail := func(err error) (*entity.Review, error) {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	log := slog.With(
@@ -47,13 +47,13 @@ func (ec *EventUseCase) ReviewEvent(ctx context.Context, cmd commands.ReviewEven
 		return fail(err)
 	}
 
-	err = ec.eventRepo.AddReview(ctx, cmd.EventID, cmd.WhoID, cmd.WhomID, cmd.Grade)
+	review, err := ec.eventRepo.AddReview(ctx, cmd.EventID, cmd.WhoID, cmd.WhomID, cmd.Grade)
 	if err != nil {
 		log.Debug("couldn't add user review to event: ", err.Error())
 		return fail(err)
 	}
 
-	return nil
+	return review, nil
 }
 
 func (ec *EventUseCase) CreateEvent(ctx context.Context, cmd commands.CreateEventCommand) (*entity.Event, error) {
@@ -93,10 +93,10 @@ func (ec *EventUseCase) CreateEvent(ctx context.Context, cmd commands.CreateEven
 	return event, nil
 }
 
-func (ec *EventUseCase) GetUserEvents(ctx context.Context, cmd commands.EventByUserIdCommand) ([]entity.Event, error) {
+func (ec *EventUseCase) GetUserEvents(ctx context.Context, cmd commands.EventByUserIdCommand) ([]*entity.Event, error) {
 	const op = "UseCase:GetEvents"
 
-	fail := func(err error) ([]entity.Event, error) {
+	fail := func(err error) ([]*entity.Event, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 

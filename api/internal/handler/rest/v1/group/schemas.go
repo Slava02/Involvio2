@@ -12,8 +12,8 @@ func ToGroupOutputFromEntity(group *entity.Group) *GroupResponse {
 type (
 	JoinLeaveGroupRequest struct {
 		Body struct {
-			GroupName string `json:"group_name" example:"123" doc:"Group ID"`
-			UserId    int    `json:"user_id" example:"123" doc:"Group ID"`
+			GroupName string `json:"group_name" example:"123" doc:"Group UserID"`
+			UserId    int    `json:"user_id" example:"123" doc:"Group UserID"`
 		}
 	}
 
@@ -32,11 +32,11 @@ type (
 	}
 
 	GroupByIdRequest struct {
-		ID int `path:"id" example:"1" doc:"group id"`
+		ID int `path:"id" json:"id" example:"1" doc:"group id"`
 	}
 
 	GroupByNameRequest struct {
-		Name string `json:"name" example:"MAI" doc:"Group Name"`
+		Name string `path:"name" json:"name" example:"MAI" doc:"Group Name"`
 	}
 
 	GroupResponse struct {

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"github.com/Slava02/Involvio/api/internal/entity"
 	"github.com/Slava02/Involvio/api/pkg/database"
 	"github.com/jackc/pgerrcode"
@@ -27,7 +26,7 @@ type EventRepository struct {
 	db *database.Postgres
 }
 
-func (r *EventRepository) GetUserEvents(ctx context.Context, id int) ([]entity.Event, error) {
+func (r *EventRepository) GetUserEvents(ctx context.Context, id int) ([]*entity.Event, error) {
 	const op = "Repo:GetUserEvents"
 
 	log := slog.With(
@@ -35,30 +34,40 @@ func (r *EventRepository) GetUserEvents(ctx context.Context, id int) ([]entity.E
 	)
 	log.Debug(op)
 
-	fail := func(err error) ([]entity.Event, error) {
+	fail := func(err error) ([]*entity.Event, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	mainQuery := r.db.Builder.
-		Select("id, date, name, description").
-		From("event")
+	//mainQuery := r.db.Builder.
+	//	Select("id, date, name, description").
+	//	From("event")
+	//
+	//subQuery := r.db.Builder.
+	//	Select("event_id").
+	//	From("event_members").
+	//	Where(sq.Eq{"user_id": id})
+	//
+	//mainQuery = mainQuery.Where(subQuery.Prefix("id IN (").Suffix(")"))
+	//
+	//query, args, err := mainQuery.ToSql()
+	//if err != nil {
+	//	log.Debug("couldn't create SQL statement: ", err.Error())
+	//	return fail(err)
+	//}
 
-	subQuery := r.db.Builder.
-		Select("event_id").
-		From("event_members").
-		Where(sq.Eq{"user_id": id})
+	query := `
+		SELECT id, date, name, description 
+		FROM event 
+		WHERE id in 
+		  ( 
+			  SELECT event_id 
+			  FROM event_members 
+			  WHERE user_id = $1
+		  )`
 
-	mainQuery = mainQuery.Where(subQuery.Prefix("id IN (").Suffix(")"))
+	events := make([]*entity.Event, 0)
 
-	query, args, err := mainQuery.ToSql()
-	if err != nil {
-		log.Debug("couldn't create SQL statement: ", err.Error())
-		return fail(err)
-	}
-
-	events := make([]entity.Event, 0)
-
-	rows, err := r.db.Pool.Query(ctx, query, args)
+	rows, err := r.db.Pool.Query(ctx, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Debug("user not found: ", err.Error())
@@ -78,14 +87,13 @@ func (r *EventRepository) GetUserEvents(ctx context.Context, id int) ([]entity.E
 		}
 
 		//  TODO: fix
-		events = append(events, *event)
+		events = append(events, event)
 	}
 
 	return events, nil
 }
 
-// TODO: make reviews auto-increment and maybe return the review
-func (r *EventRepository) AddReview(ctx context.Context, eventID, who, whom, grade int) error {
+func (r *EventRepository) AddReview(ctx context.Context, eventID, who, whom, grade int) (*entity.Review, error) {
 	const op = "Repo:AddReview"
 
 	log := slog.With(
@@ -93,27 +101,37 @@ func (r *EventRepository) AddReview(ctx context.Context, eventID, who, whom, gra
 	)
 	log.Debug(op)
 
-	fail := func(err error) error {
-		return fmt.Errorf("%s: %w", op, err)
+	fail := func(err error) (*entity.Review, error) {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	query, args, err := r.db.Builder.
 		Insert("reviews").
 		Columns("event_id, who_id, about_whom_id, grade").
 		Values(eventID, who, whom, grade).
+		Suffix("RETURNING \"id\"").
 		ToSql()
 	if err != nil {
 		log.Debug("couldn't create SQL statement: ", err.Error())
 		return fail(err)
 	}
 
-	_, err = r.db.Pool.Exec(ctx, query, args...)
+	var id int
+	err = r.db.Pool.QueryRow(ctx, query, args...).Scan(&id)
 	if err != nil {
 		log.Debug("couldn't insert data in event: ", err.Error())
 		return fail(err)
 	}
 
-	return nil
+	review := &entity.Review{
+		ID:      id,
+		EventID: eventID,
+		WhomID:  whom,
+		WhoID:   who,
+		Grade:   grade,
+	}
+
+	return review, nil
 }
 
 func (r *EventRepository) InsertEvent(ctx context.Context, event *entity.Event) error {
@@ -202,7 +220,7 @@ func (r *EventRepository) AddUser(ctx context.Context, eventId, userId int) erro
 	}
 
 	query, args, err := r.db.Builder.
-		Insert("user_event").
+		Insert("event_members").
 		Columns("user_id, event_id").
 		Values(userId, eventId).
 		ToSql()
@@ -217,14 +235,14 @@ func (r *EventRepository) AddUser(ctx context.Context, eventId, userId int) erro
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.UniqueViolation:
-				log.Debug("couldn't insert data in user_event: ", err.Error())
+				log.Debug("couldn't insert data in event_members: ", err.Error())
 				return fail(ErrAlreadyExists)
 			default:
-				log.Debug("couldn't insert data in user_event: ", err.Error())
+				log.Debug("couldn't insert data in event_members: ", err.Error())
 				return fail(err)
 			}
 		} else {
-			log.Debug("couldn't insert data in user_event: ", err.Error())
+			log.Debug("couldn't insert data in event_members: ", err.Error())
 			return fail(err)
 		}
 	}
@@ -255,7 +273,16 @@ func (r *EventRepository) DeleteEvent(ctx context.Context, id int) error {
 	}
 
 	queryUserEvent, argsUserEvent, err := r.db.Builder.
-		Delete("user_event").
+		Delete("event_members").
+		Where("event_id = ?", id).
+		ToSql()
+	if err != nil {
+		log.Debug("couldn't create SQL statement: ", err.Error())
+		return fail(err)
+	}
+
+	queryReviews, argsReview, err := r.db.Builder.
+		Delete("reviews").
 		Where("event_id = ?", id).
 		ToSql()
 	if err != nil {
@@ -267,11 +294,16 @@ func (r *EventRepository) DeleteEvent(ctx context.Context, id int) error {
 	if err != nil {
 		return fail(err)
 	}
-	defer tx.Rollback(ctx)
+
+	_, err = r.db.Pool.Exec(ctx, queryReviews, argsReview...)
+	if err != nil {
+		log.Debug("couldn't delete data from event: ", err.Error())
+		return fail(err)
+	}
 
 	_, err = r.db.Pool.Exec(ctx, queryUserEvent, argsUserEvent...)
 	if err != nil {
-		log.Debug("couldn't delete data from user_event: ", err.Error())
+		log.Debug("couldn't delete data from event_members: ", err.Error())
 		return fail(err)
 	}
 

@@ -1,85 +1,93 @@
-// Use DBML to define your database structure
-// Docs: https://dbml.dbdiagram.io/docs
 
-enum sex
-{
-f
-m
+Enum "gender" {
+"f"
+"m"
 }
 
-enum goal
-{
-fun
-profit
-50_50
+Enum "goal" {
+"fun"
+"profit"
+"50_50"
 }
 
-enum status
-{
-active
-inactive
+Table "group" {
+"id" integer [pk]
+"name" text [unique, not null]
 }
 
-// Table for storing spaces
-Table space {
-id integer [pk]
-name text [not null,unique]
+Table "user_group" {
+"user_id" integer
+"group_id" integer
+
+Indexes {
+(user_id, group_id) [pk]
+}
 }
 
-// Table to store about user in spaces
-Table user_space {
-user_id integer [pk, ref: > user.id]
-space_id integer [pk, ref: > space.id]
+Table "user" {
+"id" integer [unique, not null]
+"username" text [unique, not null]
+"full_name" text
+"birthday" date
+"city" varchar
+"socials" varchar
+"position" varchar
+"gender" gender
+"photo_url" varchar
+"interests" text
+"goal" goal
 }
 
-// Table for storing user information
-table user {
-id integer [not null, unique]
-username text [not null, unique]
-full_name text
-birthday date
-gender text
-city varchar
-socials varchar
-position varchar
-sex sex
-photo_url varchar
-interests text
-goal goal
+Table "holidays_status" {
+"id" SERIAL [pk, increment]
+"user_id" integer [not null]
+"status" bool
+"till_date" date [not null]
+"set_date" date [not null]
 }
 
-// Table for storing holiday status of users
-table holidays_status {
-id integer [ref: > user.id, pk]
-status status
-till_date date [not null, default: 'null']
+Table "event" {
+"id" INTEGER [pk, increment]
+"date" date
+"name" varchar
+"description" varchar
 }
 
-// Table for storing meeting information between users
-table event {
-id integer [pk, increment]
-date date
-name varchar
-description varchar
+Table "event_members" {
+"id" INTEGER [pk, increment]
+"event_id" integer
+"user_id" integer
 }
 
-table event_members {
-id integer [pk, increment]
-event_id integer [ref: > event.id]
-user_id integer [ref: > user.id]
+Table "reviews" {
+"id" SERIAL [pk, increment]
+"event_id" integer
+"who_id" integer
+"about_whom_id" integer
+"grade" integer [not null]
 }
 
-// Table for storing reviews of meetings
-table reviews {
-id integer [pk, increment]
-event_id integer [ref: > event.id]
-who_id integer [ref: > user.id]
-about_whom_id integer [ref: > user.id]
-grade integer [not null]
+Table "blocks" {
+"who" integer
+"whom" integer [not null]
 }
 
-// Table for storing info about user's blocks
-table blocks {
-id integer [ref: > user.id]
-user_id integer [not null]
-}
+Ref:"user"."id" < "user_group"."user_id"
+
+Ref:"group"."id" < "user_group"."group_id"
+
+Ref:"user"."id" < "holidays_status"."user_id"
+
+Ref:"event"."id" < "event_members"."event_id"
+
+Ref:"user"."id" < "event_members"."user_id"
+
+Ref:"event"."id" < "reviews"."event_id"
+
+Ref:"user"."id" < "reviews"."who_id"
+
+Ref:"user"."id" < "reviews"."about_whom_id"
+
+Ref:"user"."id" < "blocks"."who"
+
+

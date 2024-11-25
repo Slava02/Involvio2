@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/Slava02/Involvio/api/internal/entity"
 	"github.com/Slava02/Involvio/api/internal/repository"
 	"github.com/Slava02/Involvio/api/internal/usecase"
@@ -11,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"log/slog"
+	"time"
 )
 
 type IUserUseCase interface {
@@ -18,7 +20,7 @@ type IUserUseCase interface {
 	CreateUser(ctx context.Context, cmd commands.CreateUserCommand) error
 	UpdateUser(ctx context.Context, cmd commands.UpdateUserCommand) (*entity.User, error)
 	BlockUser(ctx context.Context, cmd commands.BlockUserCommand) error
-	SetHoliday(ctx context.Context, cmd commands.SetHolidayCommand) (*entity.User, error)
+	SetHoliday(ctx context.Context, cmd commands.SetHolidayCommand) error
 	CancelHoliday(ctx context.Context, cmd commands.CancelHolidayCommand) error
 }
 
@@ -138,6 +140,8 @@ func (uh *UserHandler) UpdateUser(ctx context.Context, req *UpdateUserRequest) (
 
 	resp := ToUserOutputFromEntity(user)
 
+	log.Debug(fmt.Sprintf("%+v", resp))
+
 	return resp, nil
 }
 
@@ -170,7 +174,7 @@ func (uh *UserHandler) BlockUser(ctx context.Context, req *BlockUserRequest) (*s
 	return &struct{}{}, nil
 }
 
-func (uh *UserHandler) SetHoliday(ctx context.Context, req *SetHolidayRequest) (*UserRequestResponse, error) {
+func (uh *UserHandler) SetHoliday(ctx context.Context, req *SetHolidayRequest) (*struct{}, error) {
 	const op = "Handler:SetHoliday"
 
 	tracer := otel.Tracer(tracerName)
@@ -183,11 +187,12 @@ func (uh *UserHandler) SetHoliday(ctx context.Context, req *SetHolidayRequest) (
 	log.Debug(op)
 
 	cmd := commands.SetHolidayCommand{
-		ID:       req.Body.ID,
+		UserID:   req.Body.ID,
 		TillDate: req.Body.TillDate,
+		SetDate:  time.Now(),
 	}
 
-	user, err := uh.userUC.SetHoliday(ctx, cmd)
+	err := uh.userUC.SetHoliday(ctx, cmd)
 	if err != nil {
 		switch {
 		default:
@@ -196,9 +201,7 @@ func (uh *UserHandler) SetHoliday(ctx context.Context, req *SetHolidayRequest) (
 		}
 	}
 
-	resp := ToUserOutputFromEntity(user)
-
-	return resp, nil
+	return &struct{}{}, nil
 }
 
 func (uh *UserHandler) CancelHoliday(ctx context.Context, req *UserByIDRequest) (*struct{}, error) {

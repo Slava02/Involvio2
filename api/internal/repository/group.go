@@ -27,7 +27,6 @@ type GroupRepository struct {
 	db *database.Postgres
 }
 
-// TODO: change space to group
 func (r *GroupRepository) RemoveUser(ctx context.Context, userId int, groupName string) error {
 	const op = "Repo:RemoveUser"
 
@@ -43,15 +42,15 @@ func (r *GroupRepository) RemoveUser(ctx context.Context, userId int, groupName 
 	}
 
 	mainQuery := r.db.Builder.
-		Delete("user_space").
+		Delete("user_group").
 		Where(sq.Eq{"user_id": userId})
 
 	subQuery := r.db.Builder.
 		Select("id").
-		From("space").
+		From("\"group\"").
 		Where(sq.Eq{"name": groupName})
 
-	mainQuery = mainQuery.Where(subQuery.Prefix("id IN (").Suffix(")"))
+	mainQuery = mainQuery.Where(subQuery.Prefix("group_id IN (").Suffix(")"))
 
 	query, args, err := mainQuery.ToSql()
 	if err != nil {
@@ -83,7 +82,7 @@ func (r *GroupRepository) GetGroup(ctx context.Context, name string) (*entity.Gr
 
 	query, args, err := r.db.Builder.
 		Select("id, name").
-		From("space").
+		From("\"group\"").
 		Where("name = ?", name).
 		ToSql()
 	if err != nil {
@@ -120,7 +119,7 @@ func (r *GroupRepository) InsertGroup(ctx context.Context, group *entity.Group) 
 	}
 
 	query, args, err := r.db.Builder.
-		Insert("space").
+		Insert("\"group\"").
 		Columns("id, name").
 		Values(group.ID, group.Name).
 		ToSql()
@@ -153,7 +152,7 @@ func (r *GroupRepository) AddUser(ctx context.Context, userId int, groupName str
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	query := "INSERT INTO user_space (user_id, space_id) SELECT $1 user_id, id space_id FROM space WHERE name = $2"
+	query := "INSERT INTO user_group (user_id, group_id) SELECT $1 user_id, id group_id FROM \"group\" WHERE name = $2"
 
 	_, err := r.db.Pool.Exec(ctx, query, userId, groupName)
 	if err != nil {
@@ -189,24 +188,24 @@ func (r *GroupRepository) DeleteGroup(ctx context.Context, name string) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	mainUserSpaceQuery := r.db.Builder.
-		Delete("user_space")
+	mainUserGroupQuery := r.db.Builder.
+		Delete("user_group")
 
-	subUserSpaceQuery := r.db.Builder.
+	subUserGroupQuery := r.db.Builder.
 		Select("id").
-		From("space").
+		From("\"group\"").
 		Where(sq.Eq{"name": name})
 
-	mainUserSpaceQuery = mainUserSpaceQuery.Where(subUserSpaceQuery.Prefix("id ="))
+	mainUserGroupQuery = mainUserGroupQuery.Where(subUserGroupQuery.Prefix("group_id = (").Suffix(")"))
 
-	queryUserSpace, argsUserSpace, err := mainUserSpaceQuery.ToSql()
+	queryUserGroup, argsUserGroup, err := mainUserGroupQuery.ToSql()
 	if err != nil {
 		log.Debug("couldn't create SQL statement: ", err.Error())
 		return fail(err)
 	}
 
-	querySpace, argsSpace, err := r.db.Builder.
-		Delete("space").
+	queryGroup, argsGroup, err := r.db.Builder.
+		Delete("\"group\"").
 		Where("name = ?", name).
 		ToSql()
 	if err != nil {
@@ -220,13 +219,15 @@ func (r *GroupRepository) DeleteGroup(ctx context.Context, name string) error {
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = r.db.Pool.Exec(ctx, queryUserSpace, argsUserSpace...)
+	log.Debug("QUERY: user_group: " + queryUserGroup)
+	_, err = r.db.Pool.Exec(ctx, queryUserGroup, argsUserGroup...)
 	if err != nil {
 		log.Debug("couldn't delete data from user_group: ", err.Error())
 		return fail(err)
 	}
 
-	_, err = r.db.Pool.Exec(ctx, querySpace, argsSpace...)
+	log.Debug("QUERY: group: " + queryGroup)
+	_, err = r.db.Pool.Exec(ctx, queryGroup, argsGroup...)
 	if err != nil {
 		log.Debug("couldn't delete data from user_group: ", err.Error())
 		return fail(err)

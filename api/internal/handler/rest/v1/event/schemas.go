@@ -6,25 +6,29 @@ import (
 )
 
 // Converters
-func ToEventsOutputFromEntity(events []entity.Event) *UserEventsResponse {
+func ToEventsOutputFromEntity(events []*entity.Event) *UserEventsResponse {
 	return &UserEventsResponse{
-		Body: struct{ Events []entity.Event }{events},
+		Body: struct {
+			Events []*entity.Event `json:"events"`
+		}(struct{ Events []*entity.Event }{events}),
 	}
 }
 
 func ToEventOutputFromEntity(event entity.Event) *EventResponse {
 	return &EventResponse{
-		Body: struct{ entity.Event }{event},
+		Body: struct {
+			entity.Event `json:"event"`
+		}(struct{ entity.Event }{event}),
 	}
 }
 
 type (
 	CreateEventRequest struct {
 		Body struct {
-			Name        string        `json:"name" doc:"event name" example:"random coffee"`
-			Description string        `json:"description" doc:"event description" example:"super event"`
-			Date        time.Time     `json:"date" doc:"event time RFC 3339" example:"2020-12-09T16:09:53+00:00"`
-			Users       []entity.User `json:"users" doc:"event members"`
+			Name        string         `json:"name" doc:"event name" example:"random coffee"`
+			Description string         `json:"description" doc:"event description" example:"super event"`
+			Date        time.Time      `json:"date" doc:"event time RFC 3339" example:"2020-12-09T16:09:53+00:00"`
+			Users       []*entity.User `json:"users" doc:"event members"`
 		}
 	}
 
@@ -37,9 +41,9 @@ type (
 	}
 
 	JoinEventRequest struct {
-		EventId int `path:"id" json:"event_id" example:"123" doc:"Event ID"`
+		EventId int `path:"id" json:"event_id" example:"123" doc:"Event UserID"`
 		Body    struct {
-			UserId int `json:"user_id" example:"123" doc:"User ID"`
+			UserId int `json:"user_id" example:"123" doc:"User UserID"`
 		}
 	}
 
@@ -54,13 +58,13 @@ type (
 
 	UserEventsResponse struct {
 		Body struct {
-			Events []entity.Event
+			Events []*entity.Event `json:"events"`
 		}
 	}
 
 	EventResponse struct {
 		Body struct {
-			entity.Event
+			entity.Event `json:"event"`
 		}
 	}
 )

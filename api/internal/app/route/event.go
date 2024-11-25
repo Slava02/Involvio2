@@ -25,8 +25,9 @@ func SetupEventRoutes(api huma.API, pg *database.Postgres, deps *EventDeps) {
 	eventHandler := event.NewEventHandler(eventUseCase)
 
 	registry := huma.NewMapRegistry("#/components/schemas/", huma.DefaultSchemaNamer)
-	eventSchema := huma.SchemaFromType(registry, reflect.TypeOf(&entity.Event{}))
 	userEventsSchema := huma.SchemaFromType(registry, reflect.TypeOf(&event.UserEventsResponse{}))
+	eventSchema := huma.SchemaFromType(registry, reflect.TypeOf(&entity.Event{}))
+	reviewSchema := huma.SchemaFromType(registry, reflect.TypeOf(&entity.Review{}))
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "CreateEvent",
@@ -42,13 +43,6 @@ func SetupEventRoutes(api huma.API, pg *database.Postgres, deps *EventDeps) {
 				Content: map[string]*huma.MediaType{
 					"application/json": {
 						Schema: eventSchema,
-					},
-				},
-				Headers: map[string]*huma.Param{
-					"Location": {
-						Description: "URL of the newly created event",
-						Schema:      &huma.Schema{Type: "string"},
-						Required:    true,
 					},
 				},
 			},
@@ -203,12 +197,16 @@ func SetupEventRoutes(api huma.API, pg *database.Postgres, deps *EventDeps) {
 		Path:          "/events/review",
 		Summary:       "review event",
 		Description:   "leave feedback about event",
-		Tags:          []string{"Users"},
+		Tags:          []string{"Events"},
 		DefaultStatus: http.StatusCreated,
 		Responses: map[string]*huma.Response{
 			"201": {
-				Description: "reviewed event",
-				Content:     map[string]*huma.MediaType{},
+				Description: "IEventUC created",
+				Content: map[string]*huma.MediaType{
+					"application/json": {
+						Schema: reviewSchema,
+					},
+				},
 			},
 			"400": {
 				Description: "Invalid request",

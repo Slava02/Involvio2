@@ -137,7 +137,7 @@ func SetupUserRoutes(api huma.API, pg *database.Postgres, deps *UserDeps) {
 		Method:      http.MethodPut,
 		Path:        "/users",
 		Summary:     "update user",
-		Description: "Update an existing user by ID.",
+		Description: "Update an existing user by UserID.",
 		Tags:        []string{"Users"},
 		Responses: map[string]*huma.Response{
 			"200": {
@@ -256,11 +256,7 @@ func SetupUserRoutes(api huma.API, pg *database.Postgres, deps *UserDeps) {
 		Responses: map[string]*huma.Response{
 			"200": {
 				Description: "Holiday set",
-				Content: map[string]*huma.MediaType{
-					"application/json": {
-						Schema: userSchema,
-					},
-				},
+				Content:     map[string]*huma.MediaType{},
 			},
 			"400": {
 				Description: "Invalid request",

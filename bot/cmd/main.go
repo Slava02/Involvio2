@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	client "github.com/Slava02/Involvio/bot/clients"
 	"github.com/Slava02/Involvio/bot/config"
 	"github.com/Slava02/Involvio/bot/internal/app"
+	"github.com/Slava02/Involvio/bot/internal/usecase"
 	"github.com/Slava02/Involvio/bot/pkg/logger"
 	"log"
 	"os"
@@ -30,8 +32,17 @@ func Run(cfg *config.Config) error {
 	// Initialize logger
 	logger.SetupLogger(cfg)
 
+	// Initialize the client
+	cli, err := client.NewClientWithResponses("http://127.0.0.1:8000")
+	if err != nil {
+		panic(err)
+	}
+
+	// Initialize usercase
+	uc := usecase.New(cli)
+
 	// Run the application
-	bot := app.New(cfg)
+	bot := app.New(cfg, uc)
 
 	go func() {
 		if err := bot.Start(); err != nil {

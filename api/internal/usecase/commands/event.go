@@ -11,7 +11,7 @@ type (
 		Name        string
 		Description string
 		Date        time.Time
-		Users       []entity.User
+		Users       []*entity.User
 	}
 
 	EventByUserIdCommand struct {
