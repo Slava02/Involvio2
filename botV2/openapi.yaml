@@ -1,0 +1,1462 @@
+components:
+  securitySchemes:
+    auth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+  schemas:
+    BlockUserRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/BlockUserRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        who_id:
+          description: Telegram UserID of user who is blocking
+          example: 1234
+          format: int64
+          type: integer
+        whom_id:
+          description: Telegram UserID of user who is being blocked
+          example: 4321
+          format: int64
+          type: integer
+      required:
+        - who_id
+        - whom_id
+      type: object
+    CreateEventRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/CreateEventRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        date:
+          description: event time RFC 3339
+          example: "2020-12-09T16:09:53+00:00"
+          format: date-time
+          type: string
+        description:
+          description: event description
+          example: super event
+          type: string
+        name:
+          description: event name
+          example: random coffee
+          type: string
+        users:
+          description: event members
+          items:
+            $ref: "#/components/schemas/User"
+          nullable: true
+          type: array
+      required:
+        - name
+        - description
+        - date
+        - users
+      type: object
+    CreateGroupRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/CreateGroupRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        name:
+          description: Group Name
+          example: Very_secret_group_name
+          type: string
+      required:
+        - name
+      type: object
+    ErrorDetail:
+      additionalProperties: false
+      properties:
+        location:
+          description: Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
+          type: string
+        message:
+          description: Error message text
+          type: string
+        value:
+          description: The value at the given location
+      type: object
+    ErrorModel:
+      additionalProperties: false
+      properties:
+        detail:
+          description: A human-readable explanation specific to this occurrence of the problem.
+          example: Property foo is required but is missing.
+          type: string
+        errors:
+          description: Optional list of individual error details
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
+          nullable: true
+          type: array
+        instance:
+          description: A URI reference that identifies the specific occurrence of the problem.
+          example: https://example.com/error-log/abc123
+          format: uri
+          type: string
+        status:
+          description: HTTP status code
+          example: 400
+          format: int64
+          type: integer
+        title:
+          description: A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+          example: Bad Request
+          type: string
+        type:
+          default: about:blank
+          description: A URI reference to human-readable documentation for the error.
+          example: https://example.com/errors/example
+          format: uri
+          type: string
+      type: object
+    Event:
+      additionalProperties: false
+      properties:
+        date:
+          description: event time RFC 3339
+          example: "2020-12-09T16:09:53+00:00"
+          format: date-time
+          type: string
+        description:
+          description: event description
+          example: super event
+          type: string
+        id:
+          description: event id
+          example: 123
+          format: int64
+          type: integer
+        name:
+          description: event name
+          example: random coffee
+          type: string
+        users:
+          description: event members
+          items:
+            $ref: "#/components/schemas/User"
+          nullable: true
+          type: array
+      required:
+        - id
+        - name
+        - description
+        - date
+        - users
+      type: object
+    EventResponseBody:
+      additionalProperties: false
+      properties:
+        date:
+          description: event time RFC 3339
+          example: "2020-12-09T16:09:53+00:00"
+          format: date-time
+          type: string
+        description:
+          description: event description
+          example: super event
+          type: string
+        id:
+          description: event id
+          example: 123
+          format: int64
+          type: integer
+        name:
+          description: event name
+          example: random coffee
+          type: string
+        users:
+          description: event members
+          items:
+            $ref: "#/components/schemas/User"
+          nullable: true
+          type: array
+      required:
+        - id
+        - name
+        - description
+        - date
+        - users
+      type: object
+    Group:
+      additionalProperties: false
+      properties:
+        id:
+          example: 1234
+          format: int64
+          type: integer
+        name:
+          example: mai
+          type: string
+      required:
+        - id
+        - name
+      type: object
+    GroupResponseBody:
+      additionalProperties: false
+      properties:
+        id:
+          example: 1234
+          format: int64
+          type: integer
+        name:
+          example: mai
+          type: string
+      required:
+        - id
+        - name
+      type: object
+    JoinLeaveGroupRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/JoinLeaveGroupRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        group_name:
+          description: Group UserID
+          example: "123"
+          type: string
+        user_id:
+          description: Group UserID
+          example: 123
+          format: int64
+          type: integer
+      required:
+        - group_name
+        - user_id
+      type: object
+    ReviewEventRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/ReviewEventRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        event_id:
+          description: event id
+          example: 123
+          format: int64
+          type: integer
+        grade:
+          description: grade of event
+          example: 123
+          format: int64
+          type: integer
+        who_id:
+          description: reviewer id
+          example: 123
+          format: int64
+          type: integer
+        whom_id:
+          description: reviewee id
+          example: 123
+          format: int64
+          type: integer
+      required:
+        - event_id
+        - who_id
+        - whom_id
+        - grade
+      type: object
+    SetHolidayRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/SetHolidayRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        id:
+          description: Telegram UserID
+          example: 1234
+          format: int64
+          type: integer
+        till_date:
+          description: When holiday ends RFC 3339
+          example: "2020-12-09T16:09:53+00:00"
+          format: date-time
+          type: string
+      required:
+        - id
+        - till_date
+      type: object
+    UpdateUserRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/UpdateUserRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        city:
+          description: User's city
+          example: Moscow
+          type: string
+        full_name:
+          description: First name
+          example: ivan popkins
+          type: string
+        id:
+          description: Telegram UserID
+          example: 1234
+          format: int64
+          type: integer
+        interests:
+          description: User's interests
+          example: Programming,math
+          type: string
+        photo_url:
+          description: Photo URL
+          example: https://photo
+          type: string
+        position:
+          description: User's position in organization
+          example: student
+          type: string
+      required:
+        - id
+        - full_name
+        - photo_url
+        - city
+        - position
+        - interests
+      type: object
+    User:
+      additionalProperties: false
+      properties:
+        birthday:
+          description: Birthday
+          example: "2020-12-09T16:09:53+00:00"
+          format: date-time
+          type: string
+        city:
+          description: User's city
+          example: Moscow
+          type: string
+        full_name:
+          description: First name
+          example: ivan popkins
+          type: string
+        gender:
+          description: User's gender
+          example: male
+          type: string
+        goal:
+          description: User's goal for the meetings
+          example: fun
+          type: string
+        groups:
+          description: User's groups
+          items:
+            $ref: "#/components/schemas/Group"
+          nullable: true
+          type: array
+        id:
+          description: Telegram UserID
+          example: 1234
+          format: int64
+          type: integer
+        interests:
+          description: User's interests
+          example: Programming,math
+          type: string
+        photo_url:
+          description: Photo URL
+          example: https://photo
+          type: string
+        position:
+          description: User's position in organization
+          example: student
+          type: string
+        socials:
+          description: User's account
+          type: string
+        user_name:
+          description: Username
+          example: s1av4
+          type: string
+      required:
+        - id
+        - full_name
+        - user_name
+        - photo_url
+        - birthday
+        - gender
+        - city
+        - socials
+        - position
+        - interests
+        - goal
+        - groups
+      type: object
+    UserByIDRequestBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/UserByIDRequestBody.json
+          format: uri
+          readOnly: true
+          type: string
+        id:
+          description: UserID
+          example: 123
+          format: int64
+          type: integer
+      required:
+        - id
+      type: object
+    UserEventsResponseBody:
+      additionalProperties: false
+      properties:
+        events:
+          items:
+            $ref: "#/components/schemas/Event"
+          nullable: true
+          type: array
+      required:
+        - events
+      type: object
+    UserRequestResponseBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://example.com/schemas/UserRequestResponseBody.json
+          format: uri
+          readOnly: true
+          type: string
+        birthday:
+          description: Birthday
+          example: "2020-12-09T16:09:53+00:00"
+          format: date-time
+          type: string
+        city:
+          description: User's city
+          example: Moscow
+          type: string
+        full_name:
+          description: First name
+          example: ivan popkins
+          type: string
+        gender:
+          description: User's gender
+          example: male
+          type: string
+        goal:
+          description: User's goal for the meetings
+          example: fun
+          type: string
+        groups:
+          description: User's groups
+          items:
+            $ref: "#/components/schemas/Group"
+          nullable: true
+          type: array
+        id:
+          description: Telegram UserID
+          example: 1234
+          format: int64
+          type: integer
+        interests:
+          description: User's interests
+          example: Programming,math
+          type: string
+        photo_url:
+          description: Photo URL
+          example: https://photo
+          type: string
+        position:
+          description: User's position in organization
+          example: student
+          type: string
+        socials:
+          description: User's account
+          type: string
+        user_name:
+          description: Username
+          example: s1av4
+          type: string
+      required:
+        - id
+        - full_name
+        - user_name
+        - photo_url
+        - birthday
+        - gender
+        - city
+        - socials
+        - position
+        - interests
+        - goal
+        - groups
+      type: object
+info:
+  title: api
+  version: 1.0.0
+openapi: 3.0.3
+paths:
+  /events:
+    post:
+      description: Create new event record.
+      operationId: CreateEvent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequestBody"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  date:
+                    description: event time RFC 3339
+                    example: "2020-12-09T16:09:53+00:00"
+                    format: date-time
+                    type: string
+                  description:
+                    description: event description
+                    example: super event
+                    type: string
+                  id:
+                    description: event id
+                    example: 123
+                    format: int64
+                    type: integer
+                  name:
+                    description: event name
+                    example: random coffee
+                    type: string
+                  users:
+                    description: event members
+                    items:
+                      $ref: "#/components/schemas/User"
+                    nullable: true
+                    type: array
+                required:
+                  - id
+                  - name
+                  - description
+                  - date
+                  - users
+                type: object
+          description: IEventUC created
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: create new event
+      tags:
+        - Events
+  /events/review:
+    post:
+      description: leave feedback about event
+      operationId: ReviewEvent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewEventRequestBody"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  event_id:
+                    description: event id
+                    example: 123
+                    format: int64
+                    type: integer
+                  grade:
+                    description: grade of event
+                    example: 123
+                    format: int64
+                    type: integer
+                  id:
+                    description: review id
+                    example: 123
+                    format: int64
+                    type: integer
+                  who_id:
+                    description: reviewer id
+                    example: 123
+                    format: int64
+                    type: integer
+                  whom_id:
+                    description: reviewee id
+                    example: 123
+                    format: int64
+                    type: integer
+                required:
+                  - id
+                  - event_id
+                  - who_id
+                  - whom_id
+                  - grade
+                type: object
+          description: IEventUC created
+          headers:
+            EventID:
+              schema:
+                description: event id
+                example: 123
+                format: int64
+                type: integer
+            Grade:
+              schema:
+                description: grade of event
+                example: 123
+                format: int64
+                type: integer
+            ID:
+              schema:
+                description: review id
+                example: 123
+                format: int64
+                type: integer
+            WhoID:
+              schema:
+                description: reviewer id
+                example: 123
+                format: int64
+                type: integer
+            WhomID:
+              schema:
+                description: reviewee id
+                example: 123
+                format: int64
+                type: integer
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IEventUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: review event
+      tags:
+        - Events
+  /events/{id}:
+    delete:
+      description: delete event
+      operationId: DeleteEvent
+      parameters:
+        - description: event id
+          example: 1
+          in: path
+          name: id
+          required: true
+          schema:
+            description: event id
+            example: 1
+            format: int64
+            maxLength: 30
+            type: integer
+      responses:
+        "201":
+          description: deleted IEventUC
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IEventUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: delete event
+      tags:
+        - Events
+    get:
+      description: Get all events users where user participated
+      operationId: GetUserEvents
+      parameters:
+        - description: event id
+          example: 1
+          in: path
+          name: id
+          required: true
+          schema:
+            description: event id
+            example: 1
+            format: int64
+            maxLength: 30
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  Body:
+                    $ref: "#/components/schemas/UserEventsResponseBody"
+                required:
+                  - Body
+                type: object
+          description: IEventUC response
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IEventUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: events by user id
+      tags:
+        - Events
+  /groups:
+    post:
+      description: Create a new group record.
+      operationId: CreateGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequestBody"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  id:
+                    example: 1234
+                    format: int64
+                    type: integer
+                  name:
+                    example: mai
+                    type: string
+                required:
+                  - id
+                  - name
+                type: object
+          description: IGroupUC created
+          headers:
+            Location:
+              description: URL of the newly created group
+              required: true
+              schema:
+                type: string
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: create new group
+      tags:
+        - Groups
+  /groups/join:
+    post:
+      description: join group
+      operationId: JoinGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinLeaveGroupRequestBody"
+        required: true
+      responses:
+        "201":
+          description: joined IGroupUC
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: join group
+      tags:
+        - Groups
+  /groups/leave:
+    post:
+      description: leave group
+      operationId: LeaveGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinLeaveGroupRequestBody"
+        required: true
+      responses:
+        "201":
+          description: leaved IGroupUC
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: leave group
+      tags:
+        - Groups
+  /groups/{name}:
+    delete:
+      description: "[NOT NEEDED] delete group"
+      operationId: DeleteGroup
+      parameters:
+        - description: Group Name
+          example: MAI
+          in: path
+          name: name
+          required: true
+          schema:
+            description: Group Name
+            example: MAI
+            type: string
+      responses:
+        "201":
+          description: Created
+        "204":
+          description: IGroupUC deleted
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IGroupUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: delete group
+      tags:
+        - Groups
+    get:
+      description: Get group by name.
+      operationId: GetGroup
+      parameters:
+        - description: Group Name
+          example: MAI
+          in: path
+          name: name
+          required: true
+          schema:
+            description: Group Name
+            example: MAI
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  id:
+                    example: 1234
+                    format: int64
+                    type: integer
+                  name:
+                    example: mai
+                    type: string
+                required:
+                  - id
+                  - name
+                type: object
+          description: IGroupUC response
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IGroupUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: group by name
+      tags:
+        - Groups
+  /users:
+    post:
+      description: Create a new user record.
+      operationId: CreateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequestResponseBody"
+        required: true
+      responses:
+        "201":
+          description: User created
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: create new user
+      tags:
+        - Users
+    put:
+      description: Update an existing user by UserID.
+      operationId: UpdateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequestBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  birthday:
+                    description: Birthday
+                    example: "2020-12-09T16:09:53+00:00"
+                    format: date-time
+                    type: string
+                  city:
+                    description: User's city
+                    example: Moscow
+                    type: string
+                  full_name:
+                    description: First name
+                    example: ivan popkins
+                    type: string
+                  gender:
+                    description: User's gender
+                    example: male
+                    type: string
+                  goal:
+                    description: User's goal for the meetings
+                    example: fun
+                    type: string
+                  groups:
+                    description: User's groups
+                    items:
+                      $ref: "#/components/schemas/Group"
+                    nullable: true
+                    type: array
+                  id:
+                    description: Telegram UserID
+                    example: 1234
+                    format: int64
+                    type: integer
+                  interests:
+                    description: User's interests
+                    example: Programming,math
+                    type: string
+                  photo_url:
+                    description: Photo URL
+                    example: https://photo
+                    type: string
+                  position:
+                    description: User's position in organization
+                    example: student
+                    type: string
+                  socials:
+                    description: User's account
+                    type: string
+                  user_name:
+                    description: Username
+                    example: s1av4
+                    type: string
+                required:
+                  - id
+                  - full_name
+                  - user_name
+                  - photo_url
+                  - birthday
+                  - gender
+                  - city
+                  - socials
+                  - position
+                  - interests
+                  - goal
+                  - groups
+                type: object
+          description: IUserUC updated
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IUserUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: update user
+      tags:
+        - Users
+  /users/block:
+    post:
+      description: block user
+      operationId: BlockUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockUserRequestBody"
+        required: true
+      responses:
+        "200":
+          description: User blocked
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IUserUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: block user
+      tags:
+        - Users
+  /users/holiday:
+    post:
+      description: prevent bot from sending messages for a certain amount of time
+      operationId: SetUserHoliday
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetHolidayRequestBody"
+        required: true
+      responses:
+        "200":
+          description: Holiday set
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IUserUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: set holiday
+      tags:
+        - Users
+  /users/holiday/cancel:
+    post:
+      description: returns info about current user's holidays
+      operationId: CancelUserHoliday
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserByIDRequestBody"
+        required: true
+      responses:
+        "200":
+          description: Holiday canceled
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IUserUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: set or reset holiday
+      tags:
+        - Users
+  /users/{username}:
+    get:
+      description: Get a user by username.
+      operationId: GetUser
+      parameters:
+        - description: Username
+          example: ivanko228
+          in: path
+          name: username
+          required: true
+          schema:
+            description: Username
+            example: ivanko228
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  birthday:
+                    description: Birthday
+                    example: "2020-12-09T16:09:53+00:00"
+                    format: date-time
+                    type: string
+                  city:
+                    description: User's city
+                    example: Moscow
+                    type: string
+                  full_name:
+                    description: First name
+                    example: ivan popkins
+                    type: string
+                  gender:
+                    description: User's gender
+                    example: male
+                    type: string
+                  goal:
+                    description: User's goal for the meetings
+                    example: fun
+                    type: string
+                  groups:
+                    description: User's groups
+                    items:
+                      $ref: "#/components/schemas/Group"
+                    nullable: true
+                    type: array
+                  id:
+                    description: Telegram UserID
+                    example: 1234
+                    format: int64
+                    type: integer
+                  interests:
+                    description: User's interests
+                    example: Programming,math
+                    type: string
+                  photo_url:
+                    description: Photo URL
+                    example: https://photo
+                    type: string
+                  position:
+                    description: User's position in organization
+                    example: student
+                    type: string
+                  socials:
+                    description: User's account
+                    type: string
+                  user_name:
+                    description: Username
+                    example: s1av4
+                    type: string
+                required:
+                  - id
+                  - full_name
+                  - user_name
+                  - photo_url
+                  - birthday
+                  - gender
+                  - city
+                  - socials
+                  - position
+                  - interests
+                  - goal
+                  - groups
+                type: object
+          description: IUserUC response
+        "400":
+          content:
+            application/json:
+              schema:
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                type: object
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: IUserUC not found
+        "500":
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                type: object
+          description: Internal server error
+      summary: user by username
+      tags:
+        - Users
+security:
+  - auth:
+      - ""

@@ -11,6 +11,7 @@ import (
 	tm "github.com/and3rson/telemux/v2"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -133,427 +134,427 @@ func (b *Bot) Start() error {
 								}
 							}
 
-							u.PersistenceContext.SetState("check_result")
+							u.PersistenceContext.SetState("enter_gender")
 							u.PersistenceContext.PutDataValue(user.UserName, usr)
 							storage.Data[user.UserName] = usr
 						}),
 				},
-				////GET GENDER
-				//"enter_gender": {
-				//	tm.NewHandler(tm.HasText(),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG: GET GENDER"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			msg := tgbotapi.NewMessage(u.EffectiveChat().ID, "👱‍ 👧 Укажи свой пол ")
-				//			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-				//			bot.Send(msg)
-				//
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			user.FullName = u.EffectiveMessage().Text
-				//
-				//			msg = tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				constants.GenderMsg,
-				//			)
-				//			msg.ReplyMarkup = constants.GenderCallback
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_photo")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG: GET GENDER"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
-				////  GET PHOTO
-				//"enter_photo": {
-				//	tm.NewCallbackQueryHandler(`^gender:(.+)`, nil,
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG: GET GET PHOTO"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			gender := strings.Split(u.CallbackQuery.Data, ":")
-				//			user.Gender = gender[1]
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.CallbackQuery.Message.Chat.ID,
-				//				constants.PhotoMsg,
-				//			)
-				//			if user.Photo.FileID != "" {
-				//				msg.ReplyMarkup = constants.PhotoKeyBoard
-				//			}
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_city")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG: GET GET PHOTO"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
-				////  GET CITY
-				//"enter_city": {
-				//	tm.NewHandler(tm.Or(tm.HasPhoto(), tm.HasRegex("^"+constants.PhotoBtn)),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG: GET CITY"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			//  IF SENT PHOTO - USE IT
-				//			if u.EffectiveMessage().Photo != nil {
-				//				user.Photo.FileID = u.Message.Photo[0].FileID
-				//			} else {
-				//				photo, err := bot.GetUserProfilePhotos(tgbotapi.UserProfilePhotosConfig{
-				//					UserID: user.TelegID,
-				//					Offset: 0,
-				//					Limit:  1,
-				//				})
-				//				if err != nil {
-				//					slog.Debug("Couldn't get profile photo: %s\n", err.Error())
-				//				}
-				//
-				//				log.Info(fmt.Sprintf("PHOTO ID: %s\n", photo.Photos[0][0].FileID))
-				//				user.Photo.FileID = photo.Photos[0][0].FileID
-				//			}
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				constants.CityMsg,
-				//			)
-				//			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_socials")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG: GET CITY"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас. Отправьте фотографию",
-				//			))
-				//		}),
-				//},
-				////  ENTER SOCIALS
-				//"enter_socials": {
-				//	tm.NewHandler(tm.Or(tm.HasText(), tm.HasRegex("^"+constants.AgainBtn)),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER SOCIALS"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			if user.City == "" {
-				//				user.City = u.EffectiveMessage().Text
-				//			}
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.Message.Chat.ID,
-				//				constants.SocialsMsg,
-				//			)
-				//			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_position")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER SOCIALS"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
-				////  ENTER POSITION
-				//"enter_position": {
-				//	tm.NewHandler(tm.HasText(),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER POSITION"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			//  TODO: validate links properly
-				//			//  IF NOT VALID - BACK TO PREVIOUS STATE
-				//			_, err := url.ParseRequestURI(u.Message.Text)
-				//			if err != nil {
-				//				slog.Debug(err.Error())
-				//				msg := tgbotapi.NewMessage(
-				//					u.Message.Chat.ID,
-				//					constants.WrongSocialsMsg,
-				//				)
-				//				msg.ReplyMarkup = constants.AgainKeyBoard
-				//				bot.Send(msg)
-				//				u.PersistenceContext.SetState("enter_socials")
-				//				return
-				//			}
-				//			user.Socials = u.Message.Text
-				//
-				//			file := tgbotapi.FilePath("/Users/slava/GolandProjects/Involvio/bot/internal/constants/img/Position.jpg")
-				//			share := tgbotapi.NewPhoto(u.Message.Chat.ID, file)
-				//			bot.Send(share)
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.Message.Chat.ID,
-				//				constants.PositionMsg,
-				//			)
-				//			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_interests")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER POSITION"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
-				////  ENTER INTERESTS
-				//"enter_interests": {
-				//	tm.NewHandler(tm.HasText(),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER INTERESTS"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			user.Position = u.Message.Text
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.Message.Chat.ID,
-				//				constants.InterestsMsg,
-				//			)
-				//			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_birthday")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER INTERESTS"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
-				////  ENTER BIRTHDAY
-				//"enter_birthday": {
-				//	tm.NewHandler(tm.Or(tm.HasText(), tm.HasRegex("^"+constants.AgainBtn)),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER BIRTHDAY"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			user.Interests = u.Message.Text
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.Message.Chat.ID,
-				//				constants.BirthdayMsg,
-				//			)
-				//			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_goal")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER BIRTHDAY"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
-				////  ENTER GOAL
-				//"enter_goal": {
-				//	tm.NewHandler(tm.HasText(),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER GOAL"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			//  VALIDATE DATE FORMAT
-				//			layout := "01/02/2006"
-				//			t, err := time.Parse(layout, strings.Replace(u.Message.Text, ".", "/", -1))
-				//			//  IF NOT VALID - BACK TO PREVIOUS STATE
-				//			if err != nil {
-				//				slog.Debug("Не удалось получить время: %s\n", err.Error())
-				//				msg := tgbotapi.NewMessage(
-				//					u.Message.Chat.ID,
-				//					constants.WrongTimeMsg,
-				//				)
-				//				msg.ReplyMarkup = constants.AgainKeyBoard
-				//				bot.Send(msg)
-				//				u.PersistenceContext.SetState("enter_birthday")
-				//				return
-				//			}
-				//			user.Birthday = t.String()
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.Message.Chat.ID,
-				//				constants.GoalMsg,
-				//			)
-				//			msg.ReplyMarkup = constants.GoalCallback
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("enter_group")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER GOAL"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
-				////  ENTER GROUP
-				//"enter_group": {
-				//	tm.NewCallbackQueryHandler(`^goal:(.+)`, nil,
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER GROUP"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//			user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
-				//
-				//			//  TODO: add constants for saving goal
-				//			goal := strings.Split(u.CallbackQuery.Data, ":")
-				//			user.Goal = goal[1]
-				//
-				//			msg := tgbotapi.NewMessage(
-				//				u.CallbackQuery.Message.Chat.ID,
-				//				constants.GroupCodeMsg,
-				//			)
-				//			msg.ReplyMarkup = constants.GroupKeyBoard
-				//			bot.Send(msg)
-				//
-				//			u.PersistenceContext.SetState("check_result")
-				//			u.PersistenceContext.PutDataValue(user.UserName, user)
-				//		}),
-				//	tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
-				//		func(u *tm.Update) {
-				//			const op = "GET USER DATA DIALOG:  ENTER GROUP"
-				//			log := slog.With(
-				//				slog.String("op", op),
-				//				slog.AnyValue(u.Update),
-				//			)
-				//			log.Debug(op)
-				//
-				//			bot.Send(tgbotapi.NewMessage(
-				//				u.EffectiveChat().ID,
-				//				"🤖 Извините, не понял вас.",
-				//			))
-				//		}),
-				//},
+				//GET GENDER
+				"enter_gender": {
+					tm.NewHandler(tm.HasText(),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG: GET GENDER"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							msg := tgbotapi.NewMessage(u.EffectiveChat().ID, "👱‍ 👧 Укажи свой пол ")
+							msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+							bot.Send(msg)
+
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							user.FullName = u.EffectiveMessage().Text
+
+							msg = tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								constants.GenderMsg,
+							)
+							msg.ReplyMarkup = constants.GenderCallback
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_photo")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG: GET GENDER"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
+				//  GET PHOTO
+				"enter_photo": {
+					tm.NewCallbackQueryHandler(`^gender:(.+)`, nil,
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG: GET GET PHOTO"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							gender := strings.Split(u.CallbackQuery.Data, ":")
+							user.Gender = gender[1]
+
+							msg := tgbotapi.NewMessage(
+								u.CallbackQuery.Message.Chat.ID,
+								constants.PhotoMsg,
+							)
+							if user.Photo.FileID != "" {
+								msg.ReplyMarkup = constants.PhotoKeyBoard
+							}
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_city")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG: GET GET PHOTO"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
+				//  GET CITY
+				"enter_city": {
+					tm.NewHandler(tm.Or(tm.HasPhoto(), tm.HasRegex("^"+constants.PhotoBtn)),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG: GET CITY"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							//  IF SENT PHOTO - USE IT
+							if u.EffectiveMessage().Photo != nil {
+								user.Photo.FileID = u.Message.Photo[0].FileID
+							} else {
+								photo, err := bot.GetUserProfilePhotos(tgbotapi.UserProfilePhotosConfig{
+									UserID: user.TelegID,
+									Offset: 0,
+									Limit:  1,
+								})
+								if err != nil {
+									slog.Debug("Couldn't get profile photo: %s\n", err.Error())
+								}
+
+								log.Info(fmt.Sprintf("PHOTO ID: %s\n", photo.Photos[0][0].FileID))
+								user.Photo.FileID = photo.Photos[0][0].FileID
+							}
+
+							msg := tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								constants.CityMsg,
+							)
+							msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_socials")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG: GET CITY"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас. Отправьте фотографию",
+							))
+						}),
+				},
+				//  ENTER SOCIALS
+				"enter_socials": {
+					tm.NewHandler(tm.Or(tm.HasText(), tm.HasRegex("^"+constants.AgainBtn)),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER SOCIALS"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							if user.City == "" {
+								user.City = u.EffectiveMessage().Text
+							}
+
+							msg := tgbotapi.NewMessage(
+								u.Message.Chat.ID,
+								constants.SocialsMsg,
+							)
+							msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_position")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER SOCIALS"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
+				//  ENTER POSITION
+				"enter_position": {
+					tm.NewHandler(tm.HasText(),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER POSITION"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							//  TODO: validate links properly
+							//  IF NOT VALID - BACK TO PREVIOUS STATE
+							_, err := url.ParseRequestURI(u.Message.Text)
+							if err != nil {
+								slog.Debug(err.Error())
+								msg := tgbotapi.NewMessage(
+									u.Message.Chat.ID,
+									constants.WrongSocialsMsg,
+								)
+								msg.ReplyMarkup = constants.AgainKeyBoard
+								bot.Send(msg)
+								u.PersistenceContext.SetState("enter_socials")
+								return
+							}
+							user.Socials = u.Message.Text
+
+							file := tgbotapi.FilePath("/Users/slava/GolandProjects/Involvio/bot/internal/constants/img/Position.jpg")
+							share := tgbotapi.NewPhoto(u.Message.Chat.ID, file)
+							bot.Send(share)
+
+							msg := tgbotapi.NewMessage(
+								u.Message.Chat.ID,
+								constants.PositionMsg,
+							)
+							msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_interests")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER POSITION"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
+				//  ENTER INTERESTS
+				"enter_interests": {
+					tm.NewHandler(tm.HasText(),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER INTERESTS"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							user.Position = u.Message.Text
+
+							msg := tgbotapi.NewMessage(
+								u.Message.Chat.ID,
+								constants.InterestsMsg,
+							)
+							msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_birthday")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER INTERESTS"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
+				//  ENTER BIRTHDAY
+				"enter_birthday": {
+					tm.NewHandler(tm.Or(tm.HasText(), tm.HasRegex("^"+constants.AgainBtn)),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER BIRTHDAY"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							user.Interests = u.Message.Text
+
+							msg := tgbotapi.NewMessage(
+								u.Message.Chat.ID,
+								constants.BirthdayMsg,
+							)
+							msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_goal")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER BIRTHDAY"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
+				//  ENTER GOAL
+				"enter_goal": {
+					tm.NewHandler(tm.HasText(),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER GOAL"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							//  VALIDATE DATE FORMAT
+							layout := "01/02/2006"
+							t, err := time.Parse(layout, strings.Replace(u.Message.Text, ".", "/", -1))
+							//  IF NOT VALID - BACK TO PREVIOUS STATE
+							if err != nil {
+								slog.Debug("Не удалось получить время: %s\n", err.Error())
+								msg := tgbotapi.NewMessage(
+									u.Message.Chat.ID,
+									constants.WrongTimeMsg,
+								)
+								msg.ReplyMarkup = constants.AgainKeyBoard
+								bot.Send(msg)
+								u.PersistenceContext.SetState("enter_birthday")
+								return
+							}
+							user.Birthday = t.String()
+
+							msg := tgbotapi.NewMessage(
+								u.Message.Chat.ID,
+								constants.GoalMsg,
+							)
+							msg.ReplyMarkup = constants.GoalCallback
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("enter_group")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER GOAL"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
+				//  ENTER GROUP
+				"enter_group": {
+					tm.NewCallbackQueryHandler(`^goal:(.+)`, nil,
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER GROUP"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+							user := u.PersistenceContext.GetData()[u.EffectiveUser().UserName].(*models.User)
+
+							//  TODO: add constants for saving goal
+							goal := strings.Split(u.CallbackQuery.Data, ":")
+							user.Goal = goal[1]
+
+							msg := tgbotapi.NewMessage(
+								u.CallbackQuery.Message.Chat.ID,
+								constants.GroupCodeMsg,
+							)
+							msg.ReplyMarkup = constants.GroupKeyBoard
+							bot.Send(msg)
+
+							u.PersistenceContext.SetState("check_result")
+							u.PersistenceContext.PutDataValue(user.UserName, user)
+						}),
+					tm.NewHandler(tm.Not(tm.Or(tm.IsCommandMessage("cancel"), tm.IsCommandMessage("start"))),
+						func(u *tm.Update) {
+							const op = "GET USER DATA DIALOG:  ENTER GROUP"
+							log := slog.With(
+								slog.String("op", op),
+								slog.AnyValue(u.Update),
+							)
+							log.Debug(op)
+
+							bot.Send(tgbotapi.NewMessage(
+								u.EffectiveChat().ID,
+								"🤖 Извините, не понял вас.",
+							))
+						}),
+				},
 				//  CHECK PROFILE
 				"check_result": {
 					tm.NewHandler(tm.Or(tm.HasText(), tm.HasRegex("^"+constants.GroupBtn)),
