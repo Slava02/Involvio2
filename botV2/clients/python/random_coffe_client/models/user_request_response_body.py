@@ -59,6 +59,10 @@ class UserRequestResponseBody(BaseModel):
         # TODO: pydantic v2: use .model_dump_json(by_alias=True, exclude_unset=True) instead
         return json.dumps(self.to_dict())
 
+    def __str__(self):
+        return f'{self.full_name}\nПрофиль: {self.user_name}\n\nГород: {self.city}\nДата рождения: {self.birthday.strftime('%d.%m.%Y')}\n\nЧем занимается: {self.position}\nЗацепки для начала разговора: {self.interests}\n\nСоцсети: {self.socials}'
+
+
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
         """Create an instance of UserRequestResponseBody from a JSON string"""
