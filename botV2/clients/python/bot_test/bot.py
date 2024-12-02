@@ -1,7 +1,7 @@
 import telebot
 from datetime import datetime
 from constants import MESSAGES
-from random_coffe_client.models.user_request_response_body import UserRequestResponseBody
+
 
 token = ('7916244383:AAFccoAAoG5e_BA_s_yVN0_zvJqpTDbp2-U')
 bot = telebot.TeleBot(token)
@@ -16,9 +16,9 @@ def welcome(message):
     keyboard = telebot.types.InlineKeyboardMarkup()
     button = telebot.types.InlineKeyboardButton(text="Поехали!", callback_data='start_collecting_data')
     keyboard.add(button)
-    with open('C:\\Users\\tlavr\\Downloads\\Black_Hole.jpg', 'rb') as file:
-        photo = file.read()
-    bot.send_photo(chat_id, photo)
+    #with open('C:\\Users\\79851\\Downloads\\Hello.jpg', 'rb') as file:
+    #    photo = file.read()
+    #bot.send_photo(chat_id, photo)
     username = message.from_user.first_name
     user_dict[chat_id] = {}
     user_dict[chat_id]['id'] = message.from_user.id
@@ -47,10 +47,38 @@ def bot_help(message):
     bot.send_message(chat_id=message.chat.id, text=MESSAGES['HelpMsg'], reply_markup=keyboard)
 
 
-'''
+@bot.callback_query_handler(func=lambda call: call.data == 'rate_meeting')
+def rate(call):
+    last_partner = None
+    for chat_id in user_dict:
+        if chat_id != call.message.chat.id:
+            last_partner = user_dict[chat_id]['user_name']
+    if last_partner:
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        button_1 = telebot.types.InlineKeyboardButton(text='1', callback_data='rate1')
+        button_2 = telebot.types.InlineKeyboardButton(text='2', callback_data='rate1')
+        button_3 = telebot.types.InlineKeyboardButton(text='3', callback_data='rate1')
+        button_4 = telebot.types.InlineKeyboardButton(text='4', callback_data='rate1')
+        button_5 = telebot.types.InlineKeyboardButton(text='5', callback_data='rate1')
+        keyboard.add(button_1, button_2, button_3, button_4, button_5)
+        bot.send_message(chat_id=call.message.chat.id, text=f'Оцените встречу с {last_partner}', reply_markup=keyboard)
+    else:
+        bot.send_message(chat_id=call.message.chat.id, text='У Вас пока что не было встреч')
+
+
 @bot.callback_query_handler(func=lambda call: call.data == 'edit_groups')
 def edit_groups(call):
-'''
+    ask_group(call.message)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'pause_bot')
+def stop_bot(call):
+    bot.send_message(chat_id=call.message.chat.id, text='Бот поставлен на паузу')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'stop_pause_bot')
+def stop_pause_bot(call):
+    bot.send_message(chat_id=call.message.chat.id, text='Бот снят с паузы')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'view_profile')
@@ -69,7 +97,10 @@ def view_profile(message):
         interests=user['interests'],
         socials=user['socials']
     )
-    bot.send_photo(message.chat.id, user['photo_url'], caption=text)
+    if user['photo_url']:
+        bot.send_photo(message.chat.id, user['photo_url'], caption=text)
+    else:
+        bot.send_message(chat_id=message.chat.id, text=text)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'edit_profile')
@@ -141,7 +172,7 @@ def save_gender(call):
 
 def ask_photo(message):
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button_save = telebot.types.InlineKeyboardButton(text="Возьмите аватарку")
+    button_save = telebot.types.KeyboardButton(text="Возьмите аватарку")
     keyboard.add(button_save)
     bot.send_message(chat_id=message.chat.id, text=MESSAGES['PhotoMsg'], reply_markup=keyboard)
 
@@ -159,7 +190,10 @@ def take_avatar_photo(message):
     photos = bot.get_user_profile_photos(message.from_user.id)
     if photos.total_count > 0:
         photo = photos.photos[0][-1]
-    user_dict[message.chat.id]['photo_url'] = photo.file_id
+    else:
+        photo = None
+    if photo:
+        user_dict[message.chat.id]['photo_url'] = photo.file_id
     if not user_dict[message.chat.id]['filled']:
         ask_city(message)
 
@@ -254,9 +288,10 @@ def save_group(message):
     global groups
     if message.text == 'Не знаю':
         user_dict[message.chat.id]['groups'] = [{'id': 0, 'name': 'default'}]
-    elif message.text not in groups:
-        groups += [message.text]
-    user_dict[message.chat.id]['groups'] = [{'id': groups.index(message.text), 'name': message.text}]
+    else:
+        if message.text not in groups:
+            groups += [message.text]
+        user_dict[message.chat.id]['groups'] = [{'id': groups.index(message.text), 'name': message.text}]
     if not user_dict[message.chat.id]['filled']:
         user_dict[message.chat.id]['filled'] = True
         keyboard = telebot.types.ReplyKeyboardRemove()
