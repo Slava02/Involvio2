@@ -23,6 +23,7 @@ def welcome(message):
     user_dict[chat_id] = {}
     user_dict[chat_id]['id'] = message.from_user.id
     user_dict[chat_id]['user_name'] = f'@{message.from_user.username}'
+    user_dict[chat_id]['full_name'] = f'{message.from_user.first_name} {message.from_user.last_name}'
     user_dict[chat_id]['filled'] = False
     bot.send_message(chat_id, MESSAGES['StartMsg'].format(username=username), reply_markup=keyboard)
 
@@ -32,7 +33,7 @@ def bot_help(message):
     keyboard = telebot.types.InlineKeyboardMarkup()
     button_view_profile = telebot.types.InlineKeyboardButton(text='Посмотреть профиль', callback_data='view_profile')
     button_change_profile = telebot.types.InlineKeyboardButton(text='Поменять данные профиля', callback_data='edit_profile')
-    button_change_groups = telebot.types.InlineKeyboardButton(text='Изменить группы', callback_data='edit_groups')
+    button_change_groups = telebot.types.InlineKeyboardButton(text='Изменить группу', callback_data='edit_groups')
     button_pause_bot = telebot.types.InlineKeyboardButton(text='Поставить бот на паузу', callback_data='pause_bot')
     button_stop_pause_bot = telebot.types.InlineKeyboardButton(text='Снять бот с паузы', callback_data='stop_pause_bot')
     button_rate_meeting = telebot.types.InlineKeyboardButton(text='Оценить встречу', callback_data='rate_meeting')
@@ -68,6 +69,7 @@ def rate(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'edit_groups')
 def edit_groups(call):
+    bot.send_message(chat_id=call.message.chat.id, text=f'Ваша текущая группа: {user_dict[call.message.chat.id]['groups']['name']}')
     ask_group(call.message)
 
 
@@ -83,11 +85,11 @@ def stop_pause_bot(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'view_profile')
 def view_profile_call(call):
-    view_profile(call.message)
+    view_profile(call.message.chat.id)
 
 
-def view_profile(message):
-    user = user_dict[message.chat.id]
+def view_profile(user_chat_id):
+    user = user_dict[user_chat_id]
     text = MESSAGES['ViewMsg'].format(
         full_name=user['full_name'],
         user_name=user['user_name'],
@@ -98,14 +100,14 @@ def view_profile(message):
         socials=user['socials']
     )
     if user['photo_url']:
-        bot.send_photo(message.chat.id, user['photo_url'], caption=text)
+        bot.send_photo(user_chat_id, user['photo_url'], caption=text)
     else:
-        bot.send_message(chat_id=message.chat.id, text=text)
+        bot.send_message(chat_id=user_chat_id, text=text)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'edit_profile')
 def edit_profile(call):
-    view_profile(call.message)
+    view_profile(call.message.chat.id)
     keyboard = telebot.types.InlineKeyboardMarkup()
     button_edit_name = telebot.types.InlineKeyboardButton(text='Имя и Фамилию', callback_data='start_collecting_data')
     button_edit_city = telebot.types.InlineKeyboardButton(text='Город', callback_data='edit_city')
@@ -143,7 +145,10 @@ def edit_photo(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'start_collecting_data')
 def ask_name(call):
     chat_id = call.message.chat.id
-    bot.send_message(chat_id=chat_id, text=MESSAGES['NameMsg'])
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    button_name = telebot.types.KeyboardButton(text=user_dict[chat_id]['full_name'])
+    keyboard.add(button_name)
+    bot.send_message(chat_id=chat_id, text=MESSAGES['NameMsg'], reply_markup=keyboard)
     bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=call.message.text)
     bot.register_next_step_handler(call.message, save_name)
 
@@ -254,9 +259,13 @@ def ask_birthday(message):
 
 
 def save_birthday(message):
-    user_dict[message.chat.id]['birthday'] = datetime.strptime(message.text, '%d.%m.%Y')
-    if not user_dict[message.chat.id]['filled']:
-        ask_goal(message)
+    try:
+        user_dict[message.chat.id]['birthday'] = datetime.strptime(message.text, '%d.%m.%Y')
+        if not user_dict[message.chat.id]['filled']:
+            ask_goal(message)
+    except ValueError:
+        bot.send_message(chat_id=message.chat.id, text='Введите корректную дату в формате ДД.ММ.ГГГГ')
+        bot.register_next_step_handler(message, save_birthday)
 
 
 def ask_goal(message):
@@ -277,7 +286,7 @@ def save_goal(call):
 
 
 def ask_group(message):
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button_save = telebot.types.InlineKeyboardButton(text="Не знаю")
     keyboard.add(button_save)
     bot.send_message(chat_id=message.chat.id, text=MESSAGES['GroupMsg'], reply_markup=keyboard)
@@ -287,16 +296,16 @@ def ask_group(message):
 def save_group(message):
     global groups
     if message.text == 'Не знаю':
-        user_dict[message.chat.id]['groups'] = [{'id': 0, 'name': 'default'}]
+        user_dict[message.chat.id]['group'] = {'id': 0, 'name': 'default'}
     else:
         if message.text not in groups:
             groups += [message.text]
-        user_dict[message.chat.id]['groups'] = [{'id': groups.index(message.text), 'name': message.text}]
+        user_dict[message.chat.id]['group'] = {'id': groups.index(message.text), 'name': message.text}
+    bot.send_message(chat_id=message.chat.id, text=f'Ваша текущая группа: {user_dict[message.chat.id]['group']['name']}', reply_markup=telebot.types.ReplyKeyboardRemove())
     if not user_dict[message.chat.id]['filled']:
         user_dict[message.chat.id]['filled'] = True
-        keyboard = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(chat_id=message.chat.id, text=MESSAGES['CheckProfileMsg'], reply_markup=keyboard)
-        view_profile(message)
+        bot.send_message(chat_id=message.chat.id, text=MESSAGES['CheckProfileMsg'])
+        view_profile(message.chat.id)
 
 
 if __name__ == '__main__':
