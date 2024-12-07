@@ -1,14 +1,27 @@
 import telebot
 from datetime import datetime
 import json
+from cities import main
 from constants import MESSAGES
-
 
 token = ('7916244383:AAFccoAAoG5e_BA_s_yVN0_zvJqpTDbp2-U')
 bot = telebot.TeleBot(token)
 
+
 user_dict = {}
+rating = {}
+
+try:
+    with open('users.json', 'r') as file:
+        u_dict = json.load(file)
+        for user in u_dict:
+            user_dict[int(user)] = u_dict[user]
+            rating[int(user)] = {}
+except:
+    pass
+
 groups = ['default']
+active_users = []
 
 
 @bot.message_handler(commands=['start'])
@@ -21,6 +34,7 @@ def welcome(message):
     #    photo = file.read()
     #bot.send_photo(chat_id, photo)
     username = message.from_user.first_name
+    rating[chat_id] = {}
     user_dict[chat_id] = {}
     user_dict[chat_id]['id'] = message.from_user.id
     user_dict[chat_id]['user_name'] = f'@{message.from_user.username}'
@@ -59,19 +73,46 @@ def rate(call):
             for pair in pairs[group]:
                 if str(call.message.chat.id) in pair:
                     last_partner = pair[(pair.index(str(call.message.chat.id))+1) % 2]
-    except json.decoder.JSONDecodeError:
+    except:
         pass
     if last_partner:
-        keyboard = telebot.types.InlineKeyboardMarkup(row_width=5)
-        button_1 = telebot.types.InlineKeyboardButton(text='1', callback_data='rate1')
-        button_2 = telebot.types.InlineKeyboardButton(text='2', callback_data='rate2')
-        button_3 = telebot.types.InlineKeyboardButton(text='3', callback_data='rate3')
-        button_4 = telebot.types.InlineKeyboardButton(text='4', callback_data='rate4')
-        button_5 = telebot.types.InlineKeyboardButton(text='5', callback_data='rate5')
-        keyboard.add(button_1, button_2, button_3, button_4, button_5)
-        bot.send_message(chat_id=call.message.chat.id, text=f'Оцените встречу с {user_dict[int(last_partner)]['user_name']}', reply_markup=keyboard)
+        try:
+            keyboard = telebot.types.InlineKeyboardMarkup(row_width=5)
+            button_1 = telebot.types.InlineKeyboardButton(text='1', callback_data='rate1')
+            button_2 = telebot.types.InlineKeyboardButton(text='2', callback_data='rate2')
+            button_3 = telebot.types.InlineKeyboardButton(text='3', callback_data='rate3')
+            button_4 = telebot.types.InlineKeyboardButton(text='4', callback_data='rate4')
+            button_5 = telebot.types.InlineKeyboardButton(text='5', callback_data='rate5')
+            keyboard.add(button_1, button_2, button_3, button_4, button_5)
+            bot.send_message(chat_id=call.message.chat.id, text=f'Как прошла твоя встреча с {user_dict[int(last_partner)]['user_name']} на этой неделе?\nОцени общее впечатление по 5-баль﻿ной шкале, где 5 - отлично', reply_markup=keyboard)
+            rating[call.message.chat.id][user_dict[int(last_partner)]['user_name']] = {}
+        except:
+            bot.send_message(chat_id=call.message.chat.id, text='У тебя пока что не было встреч')
     else:
-        bot.send_message(chat_id=call.message.chat.id, text='У Вас пока что не было встреч')
+        bot.send_message(chat_id=call.message.chat.id, text='У Вас тебя что не было встреч')
+
+
+@bot.callback_query_handler(func=lambda call: 'rate' in call.data)
+def rate_result(call):
+    last_partner = list(rating[call.message.chat.id].keys())[-1]
+    rating[call.message.chat.id][last_partner] = {'rate': call.data.split('rate')[1]}
+    bot.send_message(chat_id=call.message.chat.id, text=MESSAGES['CommentMsg'])
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=call.message.text)
+    bot.register_next_step_handler(call.message, answer_written)
+
+
+def answer_written(message):
+    last_partner = list(rating[message.chat.id].keys())[-1]
+    rating[message.chat.id][last_partner]['comment'] = message.text
+    bot.send_message(chat_id=message.chat.id, text='Ваш ответ записан. Спасибо за обратную связь!')
+
+
+@bot.message_handler(commands=['stat'])
+def send_statistics(message):
+    text = f'Проведено встреч: {len(rating[message.chat.id])}'
+    for rate in rating[message.chat.id]:
+        text += f'\n\n{rate}: {rating[message.chat.id][rate]['rate']}, {rating[message.chat.id][rate]['comment']}'
+    bot.send_message(chat_id=message.chat.id, text=text)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'edit_groups')
@@ -226,13 +267,17 @@ def ask_city(message):
 
 
 def save_city(message):
-    user_dict[message.chat.id]['city'] = message.text
-    if not user_dict[message.chat.id]['filled']:
-        ask_socials(message)
+    if main(message.text):
+        user_dict[message.chat.id]['city'] = message.text
+        if not user_dict[message.chat.id]['filled']:
+            ask_socials(message)
+        else:
+            with open('users.json', 'w') as file:
+                json.dump(user_dict, file)
+            view_profile(message.chat.id, message.chat.id)
     else:
-        with open('users.json', 'w') as file:
-            json.dump(user_dict, file)
-        view_profile(message.chat.id, message.chat.id)
+        bot.send_message(chat_id=message.chat.id, text='Введите сущесвтующий город')
+        bot.register_next_step_handler(message, save_city)
 
 
 def ask_socials(message):
@@ -363,6 +408,21 @@ def save_group(message):
         user_dict[message.chat.id]['filled'] = True
         bot.send_message(chat_id=message.chat.id, text=MESSAGES['CheckProfileMsg'].format(group=user_dict[message.chat.id]['group']['name']))
         view_profile(message.chat.id, message.chat.id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data in ['yes', 'no'])
+def answer(call):
+    global active_users
+    if call.data == 'yes':
+        message = 'Ищу тебе пару!\nКак только найду, обязательно сообщу!'
+        active_users += [call.message.chat.id]
+        with open('active_users.json', 'w') as file:
+            json.dump(active_users, file)
+
+    else:
+        message = 'Если хочешь приостановить бота, можешь воспользоваться командой: /help\n\nДо встречи!'
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=call.message.text)
+    bot.send_message(chat_id=call.message.chat.id, text=message)
 
 
 if __name__ == '__main__':

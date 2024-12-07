@@ -3,6 +3,7 @@ import schedule
 import time
 import json
 import random
+from constants import MESSAGES
 
 with open('users.json', 'r') as file:
     user_dict = json.load(file)
@@ -15,7 +16,6 @@ groups = []
 for user in user_dict:
     if user_dict[user]['group']['name'] not in groups:
         groups.append(user_dict[user]['group']['name'])
-
 
 pair_limits = {}
 old_pairs = {}
@@ -39,10 +39,13 @@ def obj_in_double_level_list(obj, iter):
 def match():
     group_dict = {}
 
+    with open('active_users.json', 'r') as file:
+        active_users = json.load(file)
+
     for group in groups:
         group_dict[group] = []
         for user in user_dict:
-            if user_dict[user]['group']['name'] == group:
+            if user_dict[user]['group']['name'] == group and int(user) in active_users:
                 group_dict[group] += [user]
 
     for group in group_dict:
@@ -56,12 +59,14 @@ def match():
             if not obj_in_double_level_list(user, new_pairs[group]):
                 print(f'{user_dict[user]['user_name']} has no pair this time :(')
                 unhappy_users[group] += [user]
-                bot.send_message(chat_id=user, text='Вам сегодня пара не найдена.\n\nНе отчаивайтесь, мы постараемся подобрать вам достойного собеседника при первой возможности!')
+                bot.send_message(chat_id=user,
+                                 text='Вам сегодня пара не найдена.\n\nНе отчаивайтесь, мы постараемся подобрать вам достойного собеседника при первой возможности!')
         for pair in new_pairs[group]:
             print(f'{user_dict[pair[0]]['user_name']}, {user_dict[pair[1]]['user_name']}')
             for user in pair:
                 bot.send_message(chat_id=user, text='Твоя пара на эту неделю:')
-                view_profile(user_id=pair[(pair.index(user)+1) % 2], chat_id=user, users=user_dict, tbot=bot, help_message=False)
+                view_profile(user_id=pair[(pair.index(user) + 1) % 2], chat_id=user, users=user_dict, tbot=bot,
+                             help_message=False)
 
     with open('pairs.json', 'w') as file:
         json.dump(new_pairs, file)
@@ -97,9 +102,19 @@ def find_new_pairs(group, group_dict):
     return new_pairs
 
 
+def ask_take_part():
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    button1 = telebot.types.InlineKeyboardButton(text="Да", callback_data='yes')
+    button2 = telebot.types.InlineKeyboardButton(text="Нет", callback_data='no')
+    keyboard.add(button1, button2)
+    for user in user_dict:
+        bot.send_message(chat_id=user, text=MESSAGES['TakePartMsg'], reply_markup=keyboard)
+
+
 if __name__ == '__main__':
 
-    schedule.every().thursday.at("21:43", "Europe/Moscow").do(match)
+    schedule.every().saturday.at("10:22", "Europe/Moscow").do(ask_take_part)
+    schedule.every().saturday.at("10:25", "Europe/Moscow").do(match)
 
     while True:
         schedule.run_pending()
