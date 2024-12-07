@@ -1,5 +1,6 @@
 import telebot
 from datetime import datetime
+import json
 from constants import MESSAGES
 
 
@@ -51,25 +52,31 @@ def bot_help(message):
 @bot.callback_query_handler(func=lambda call: call.data == 'rate_meeting')
 def rate(call):
     last_partner = None
-    for chat_id in user_dict:
-        if chat_id != call.message.chat.id:
-            last_partner = user_dict[chat_id]['user_name']
+    try:
+        with open('pairs.json', 'r') as file:
+            pairs = json.load(file)
+        for group in pairs:
+            for pair in pairs[group]:
+                if str(call.message.chat.id) in pair:
+                    last_partner = pair[(pair.index(str(call.message.chat.id))+1) % 2]
+    except json.decoder.JSONDecodeError:
+        pass
     if last_partner:
-        keyboard = telebot.types.InlineKeyboardMarkup()
+        keyboard = telebot.types.InlineKeyboardMarkup(row_width=5)
         button_1 = telebot.types.InlineKeyboardButton(text='1', callback_data='rate1')
-        button_2 = telebot.types.InlineKeyboardButton(text='2', callback_data='rate1')
-        button_3 = telebot.types.InlineKeyboardButton(text='3', callback_data='rate1')
-        button_4 = telebot.types.InlineKeyboardButton(text='4', callback_data='rate1')
-        button_5 = telebot.types.InlineKeyboardButton(text='5', callback_data='rate1')
+        button_2 = telebot.types.InlineKeyboardButton(text='2', callback_data='rate2')
+        button_3 = telebot.types.InlineKeyboardButton(text='3', callback_data='rate3')
+        button_4 = telebot.types.InlineKeyboardButton(text='4', callback_data='rate4')
+        button_5 = telebot.types.InlineKeyboardButton(text='5', callback_data='rate5')
         keyboard.add(button_1, button_2, button_3, button_4, button_5)
-        bot.send_message(chat_id=call.message.chat.id, text=f'Оцените встречу с {last_partner}', reply_markup=keyboard)
+        bot.send_message(chat_id=call.message.chat.id, text=f'Оцените встречу с {user_dict[int(last_partner)]['user_name']}', reply_markup=keyboard)
     else:
         bot.send_message(chat_id=call.message.chat.id, text='У Вас пока что не было встреч')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'edit_groups')
 def edit_groups(call):
-    bot.send_message(chat_id=call.message.chat.id, text=f'Ваша текущая группа: {user_dict[call.message.chat.id]['groups']['name']}')
+    bot.send_message(chat_id=call.message.chat.id, text=f'Ваша текущая группа: {user_dict[call.message.chat.id]['group']['name']}')
     ask_group(call.message)
 
 
@@ -85,29 +92,31 @@ def stop_pause_bot(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'view_profile')
 def view_profile_call(call):
-    view_profile(call.message.chat.id)
+    view_profile(call.message.chat.id, call.message.chat.id)
 
 
-def view_profile(user_chat_id):
-    user = user_dict[user_chat_id]
+def view_profile(user_id, chat_id, users=user_dict, tbot=bot, help_message: bool = True):
+    user = users[user_id]
     text = MESSAGES['ViewMsg'].format(
         full_name=user['full_name'],
         user_name=user['user_name'],
         city=user['city'],
-        birthday=user['birthday'].strftime('%d.%m.%Y'),
+        birthday=user['birthday'],
         position=user['position'],
         interests=user['interests'],
         socials=user['socials']
     )
     if user['photo_url']:
-        bot.send_photo(user_chat_id, user['photo_url'], caption=text)
+        tbot.send_photo(chat_id, user['photo_url'], caption=text)
     else:
-        bot.send_message(chat_id=user_chat_id, text=text)
+        tbot.send_message(chat_id=chat_id, text=text)
+    if help_message:
+        tbot.send_message(chat_id=chat_id, text='Если нужно что-то поменять, поможет команда /help')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'edit_profile')
 def edit_profile(call):
-    view_profile(call.message.chat.id)
+    view_profile(call.message.chat.id, call.message.chat.id)
     keyboard = telebot.types.InlineKeyboardMarkup()
     button_edit_name = telebot.types.InlineKeyboardButton(text='Имя и Фамилию', callback_data='start_collecting_data')
     button_edit_city = telebot.types.InlineKeyboardButton(text='Город', callback_data='edit_city')
@@ -145,11 +154,7 @@ def edit_photo(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'start_collecting_data')
 def ask_name(call):
     chat_id = call.message.chat.id
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    button_name = telebot.types.KeyboardButton(text=user_dict[chat_id]['full_name'])
-    keyboard.add(button_name)
-    bot.send_message(chat_id=chat_id, text=MESSAGES['NameMsg'], reply_markup=keyboard)
-    bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=call.message.text)
+    bot.send_message(chat_id=chat_id, text=MESSAGES['NameMsg'])
     bot.register_next_step_handler(call.message, save_name)
 
 
@@ -157,6 +162,11 @@ def save_name(message):
     user_dict[message.chat.id]['full_name'] = message.text
     if not user_dict[message.chat.id]['filled']:
         ask_gender(message)
+    else:
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
+            view_profile(message.chat.id, message.chat.id)
+
 
 
 def ask_gender(message):
@@ -170,14 +180,16 @@ def ask_gender(message):
 @bot.callback_query_handler(func=lambda call: 'gender' in call.data)
 def save_gender(call):
     user_dict[call.message.chat.id]['gender'] = call.data.split('_gender')[0]
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=call.message.text)
     if not user_dict[call.message.chat.id]['filled']:
         ask_photo(call.message)
+    else:
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
 
 
 def ask_photo(message):
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button_save = telebot.types.KeyboardButton(text="Возьмите аватарку")
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    button_save = telebot.types.InlineKeyboardButton(text="Отправить фото профиля", callback_data='take_avatar_photo')
     keyboard.add(button_save)
     bot.send_message(chat_id=message.chat.id, text=MESSAGES['PhotoMsg'], reply_markup=keyboard)
 
@@ -188,19 +200,23 @@ def photo_id(message):
     user_dict[message.chat.id]['photo_url'] = photo.file_id
     if not user_dict[message.chat.id]['filled']:
         ask_city(message)
-
-
-@bot.message_handler(func=lambda message: message.text == 'Возьмите аватарку')
-def take_avatar_photo(message):
-    photos = bot.get_user_profile_photos(message.from_user.id)
-    if photos.total_count > 0:
-        photo = photos.photos[0][-1]
     else:
-        photo = None
-    if photo:
-        user_dict[message.chat.id]['photo_url'] = photo.file_id
-    if not user_dict[message.chat.id]['filled']:
-        ask_city(message)
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
+            view_profile(message.chat.id, message.chat.id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'take_avatar_photo')
+def take_avatar_photo(call):
+    photos = bot.get_user_profile_photos(user_dict[call.message.chat.id]['id'])
+    photo = photos.photos[0][-1] if photos.total_count > 0 else None
+    user_dict[call.message.chat.id]['photo_url'] = photo.file_id if photo else None
+    if not user_dict[call.message.chat.id]['filled']:
+        ask_city(call.message)
+    else:
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
+            view_profile(message.chat.id, message.chat.id)
 
 
 def ask_city(message):
@@ -213,6 +229,10 @@ def save_city(message):
     user_dict[message.chat.id]['city'] = message.text
     if not user_dict[message.chat.id]['filled']:
         ask_socials(message)
+    else:
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
+        view_profile(message.chat.id, message.chat.id)
 
 
 def ask_socials(message):
@@ -226,6 +246,10 @@ def save_socials(message):
         user_dict[message.chat.id]['socials'] = socials
         if not user_dict[message.chat.id]['filled']:
             ask_position(message)
+        else:
+            with open('users.json', 'w') as file:
+                json.dump(user_dict, file)
+            view_profile(message.chat.id, message.chat.id)
     else:
         bot.send_message(chat_id=message.chat.id, text='Введите действительную ссылку')
         bot.register_next_step_handler(message, save_socials)
@@ -240,6 +264,10 @@ def save_position(message):
     user_dict[message.chat.id]['position'] = message.text
     if not user_dict[message.chat.id]['filled']:
         ask_interests(message)
+    else:
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
+        view_profile(message.chat.id, message.chat.id)
 
 
 def ask_interests(message):
@@ -251,6 +279,10 @@ def save_interests(message):
     user_dict[message.chat.id]['interests'] = message.text
     if not user_dict[message.chat.id]['filled']:
         ask_birthday(message)
+    else:
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
+        view_profile(message.chat.id, message.chat.id)
 
 
 def ask_birthday(message):
@@ -260,9 +292,14 @@ def ask_birthday(message):
 
 def save_birthday(message):
     try:
-        user_dict[message.chat.id]['birthday'] = datetime.strptime(message.text, '%d.%m.%Y')
+        date = datetime.strptime(message.text, '%d.%m.%Y')
+        user_dict[message.chat.id]['birthday'] = message.text
         if not user_dict[message.chat.id]['filled']:
             ask_goal(message)
+        else:
+            with open('users.json', 'w') as file:
+                json.dump(user_dict, file)
+            view_profile(message.chat.id, message.chat.id)
     except ValueError:
         bot.send_message(chat_id=message.chat.id, text='Введите корректную дату в формате ДД.ММ.ГГГГ')
         bot.register_next_step_handler(message, save_birthday)
@@ -280,32 +317,52 @@ def ask_goal(message):
 @bot.callback_query_handler(func=lambda call: 'goal' in call.data)
 def save_goal(call):
     user_dict[call.message.chat.id]['goal'] = call.data.split('goal_')[1]
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=call.message.text)
     if not user_dict[call.message.chat.id]['filled']:
         ask_group(call.message)
+    else:
+        with open('users.json', 'w') as file:
+            json.dump(user_dict, file)
 
 
 def ask_group(message):
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    button_save = telebot.types.InlineKeyboardButton(text="Не знаю")
-    keyboard.add(button_save)
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    button_save = telebot.types.InlineKeyboardButton(text="Не знаю", callback_data='no_group')
+    button1 = telebot.types.InlineKeyboardButton(text="Ввести код группы", callback_data='enter_group')
+    keyboard.add(button_save, button1)
     bot.send_message(chat_id=message.chat.id, text=MESSAGES['GroupMsg'], reply_markup=keyboard)
-    bot.register_next_step_handler(message, save_group)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'no_group')
+def no_group(call):
+    user_dict[call.message.chat.id]['group'] = {'id': 0, 'name': 'default'}
+    bot.send_message(chat_id=call.message.chat.id, text=f'Участники будут подбираться только из группы с кодом: {user_dict[call.message.chat.id]['group']['name']}')
+    with open('users.json', 'w') as file:
+        json.dump(user_dict, file)
+    if not user_dict[call.message.chat.id]['filled']:
+        user_dict[call.message.chat.id]['filled'] = True
+        bot.send_message(chat_id=call.message.chat.id, text=MESSAGES['CheckProfileMsg'].format(group=user_dict[call.message.chat.id]['group']['name']))
+        view_profile(call.message.chat.id, call.message.chat.id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'enter_group')
+def enter_group(call):
+    bot.send_message(chat_id=call.message.chat.id, text='Теперь введи код:')
+    bot.register_next_step_handler(call.message, save_group)
 
 
 def save_group(message):
     global groups
-    if message.text == 'Не знаю':
-        user_dict[message.chat.id]['group'] = {'id': 0, 'name': 'default'}
-    else:
-        if message.text not in groups:
-            groups += [message.text]
-        user_dict[message.chat.id]['group'] = {'id': groups.index(message.text), 'name': message.text}
-    bot.send_message(chat_id=message.chat.id, text=f'Ваша текущая группа: {user_dict[message.chat.id]['group']['name']}', reply_markup=telebot.types.ReplyKeyboardRemove())
+    if message.text not in groups:
+        groups += [message.text]
+        bot.send_message(chat_id=message.chat.id,  text='В этой группе ты первый участник!')
+    user_dict[message.chat.id]['group'] = {'id': groups.index(message.text), 'name': message.text}
+    with open('users.json', 'w') as file:
+        json.dump(user_dict, file)
+    bot.send_message(chat_id=message.chat.id, text=f'Участники будут подбираться только из группы с кодом: {user_dict[message.chat.id]['group']['name']}')
     if not user_dict[message.chat.id]['filled']:
         user_dict[message.chat.id]['filled'] = True
-        bot.send_message(chat_id=message.chat.id, text=MESSAGES['CheckProfileMsg'])
-        view_profile(message.chat.id)
+        bot.send_message(chat_id=message.chat.id, text=MESSAGES['CheckProfileMsg'].format(group=user_dict[message.chat.id]['group']['name']))
+        view_profile(message.chat.id, message.chat.id)
 
 
 if __name__ == '__main__':
