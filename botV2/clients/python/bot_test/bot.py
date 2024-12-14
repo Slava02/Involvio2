@@ -10,6 +10,7 @@ bot = telebot.TeleBot(token)
 
 user_dict = {}
 rating = {}
+groups = ['default']
 
 try:
     with open('users.json', 'r') as file:
@@ -17,10 +18,11 @@ try:
         for user in u_dict:
             user_dict[int(user)] = u_dict[user]
             rating[int(user)] = {}
+            if u_dict[user]['group']['name'] not in groups:
+                groups.append(u_dict[user]['group']['name'])
 except:
     pass
 
-groups = ['default']
 active_users = []
 
 
@@ -30,15 +32,13 @@ def welcome(message):
     keyboard = telebot.types.InlineKeyboardMarkup()
     button = telebot.types.InlineKeyboardButton(text="Поехали!", callback_data='start_collecting_data')
     keyboard.add(button)
-    #with open('C:\\Users\\79851\\Downloads\\Hello.jpg', 'rb') as file:
-    #    photo = file.read()
-    #bot.send_photo(chat_id, photo)
     username = message.from_user.first_name
     rating[chat_id] = {}
     user_dict[chat_id] = {}
     user_dict[chat_id]['id'] = message.from_user.id
     user_dict[chat_id]['user_name'] = f'@{message.from_user.username}'
     user_dict[chat_id]['full_name'] = f'{message.from_user.first_name} {message.from_user.last_name}'
+    user_dict[chat_id]['blocked'] = []
     user_dict[chat_id]['filled'] = False
     bot.send_message(chat_id, MESSAGES['StartMsg'].format(username=username), reply_markup=keyboard)
 
@@ -61,6 +61,23 @@ def bot_help(message):
     keyboard.add(button_rate_meeting)
     keyboard.add(button_block_user)
     bot.send_message(chat_id=message.chat.id, text=MESSAGES['HelpMsg'], reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'block_user')
+def block_user(call):
+    if user_dict[call.message.chat.id]['blocked']:
+        bot.send_message(chat_id=call.message.chat.id,
+                     text=f'Список заблокированных пользователей: {', '.join(user_dict[call.message.chat.id]['blocked'])}')
+    bot.send_message(chat_id=call.message.chat.id, text='Чтобы заблокировать пользователя, введи его username (начинается с символа @)')
+    bot.register_next_step_handler(call.message, get_block)
+
+
+def get_block(message):
+    user_dict[message.chat.id]['blocked'].append(message.text)
+    with open('users.json', 'w') as file:
+        json.dump(user_dict, file)
+    bot.send_message(chat_id=message.chat.id, text=f'Список заблокированных пользователей: {', '.join(user_dict[message.chat.id]['blocked'])}')
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'rate_meeting')
@@ -276,7 +293,7 @@ def save_city(message):
                 json.dump(user_dict, file)
             view_profile(message.chat.id, message.chat.id)
     else:
-        bot.send_message(chat_id=message.chat.id, text='Введите сущесвтующий город')
+        bot.send_message(chat_id=message.chat.id, text='Введи сущесвтующий город')
         bot.register_next_step_handler(message, save_city)
 
 
@@ -296,7 +313,7 @@ def save_socials(message):
                 json.dump(user_dict, file)
             view_profile(message.chat.id, message.chat.id)
     else:
-        bot.send_message(chat_id=message.chat.id, text='Введите действительную ссылку')
+        bot.send_message(chat_id=message.chat.id, text='Введи действительную ссылку')
         bot.register_next_step_handler(message, save_socials)
 
 

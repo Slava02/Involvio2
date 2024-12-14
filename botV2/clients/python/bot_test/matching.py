@@ -60,13 +60,15 @@ def match():
                 print(f'{user_dict[user]['user_name']} has no pair this time :(')
                 unhappy_users[group] += [user]
                 bot.send_message(chat_id=user,
-                                 text='Вам сегодня пара не найдена.\n\nНе отчаивайтесь, мы постараемся подобрать вам достойного собеседника при первой возможности!')
+                                 text='Тебе сегодня пара не найдена.\n\nНе отчаивайся, мы постараемся подобрать тебе достойного собеседника при первой возможности!')
         for pair in new_pairs[group]:
             print(f'{user_dict[pair[0]]['user_name']}, {user_dict[pair[1]]['user_name']}')
             for user in pair:
                 bot.send_message(chat_id=user, text='Твоя пара на эту неделю:')
                 view_profile(user_id=pair[(pair.index(user) + 1) % 2], chat_id=user, users=user_dict, tbot=bot,
                              help_message=False)
+                bot.send_message(chat_id=user, text='Теперь ты можешь написать этому человеку и договориться о встрече!')
+
 
     with open('pairs.json', 'w') as file:
         json.dump(new_pairs, file)
@@ -90,7 +92,7 @@ def find_new_pairs(group, group_dict):
         group_list = users.copy()
         for user2 in users:
             if ((user1, user2) in old_pairs[group] or (user2, user1) in old_pairs[group] or obj_in_double_level_list(
-                    user2, new_pairs)) and user2 in group_list:
+                    user2, new_pairs)) and user2 in group_list or user_dict[user1]['user_name'] in user_dict[user2]['blocked'] or user_dict[user2]['user_name'] in user_dict[user1]['blocked']:
                 group_list.remove(user2)
         if user1 in group_list:
             group_list.remove(user1)
@@ -113,8 +115,8 @@ def ask_take_part():
 
 if __name__ == '__main__':
 
-    schedule.every().saturday.at("10:22", "Europe/Moscow").do(ask_take_part)
-    schedule.every().saturday.at("10:25", "Europe/Moscow").do(match)
+    schedule.every().sunday.at("15:00", "Europe/Moscow").do(ask_take_part)
+    schedule.every().monday.at("10:00", "Europe/Moscow").do(match)
 
     while True:
         schedule.run_pending()
